@@ -1,0 +1,33 @@
+{
+  "name": "goblin-companion",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A snarky goblin companion for Codex with native avatar assets and a Windows desktop fallback.",
+  "author": "vus955-gif",
+  "scripts": {
+    "build:asset": "node scripts/build-goblin-asset.mjs",
+    "build:codex-avatar": "node scripts/build-codex-avatar.mjs",
+    "desktop": "node scripts/start-desktop.mjs",
+    "event": "node scripts/goblin-event.mjs",
+    "install:codex-avatar": "node scripts/install-codex-avatar.mjs",
+    "release:check": "node scripts/release-check.mjs && npm test",
+    "test": "node --test tests/*.test.mjs",
+    "start": "node scripts/serve-demo.mjs"
+  },
+  "keywords": [
+    "codex",
+    "electron",
+    "goblin",
+    "native-avatar",
+    "svg",
+    "coding-companion"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "41.3.0"
+  }
+}

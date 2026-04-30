@@ -1,0 +1,22 @@
+{
+  "sourceSvg": "assets/goblin.svg#sha256-ca4d20155c02709c",
+  "codexSpritesheet": {
+    "frameWidth": 192,
+    "frameHeight": 208,
+    "columns": 8,
+    "rows": 9,
+    "width": 1536,
+    "height": 1872,
+    "stateRows": {
+      "idle": 0,
+      "running-right": 1,
+      "running-left": 2,
+      "waving": 3,
+      "jumping": 4,
+      "failed": 5,
+      "waiting": 6,
+      "running": 7,
+      "review": 8
+    }
+  }
+}

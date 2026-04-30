@@ -1,0 +1,220 @@
+@import "../demo/styles.css";
+
+html,
+body.overlay-body {
+  height: 100%;
+  min-height: 100%;
+}
+
+body.overlay-body {
+  background:
+    linear-gradient(90deg, rgba(143, 209, 79, 0.055) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(143, 209, 79, 0.055) 1px, transparent 1px),
+    linear-gradient(145deg, #11170f 0%, #151b12 54%, #19130d 100%);
+  background-size: 28px 28px, 28px 28px, auto;
+  overflow: hidden;
+}
+
+.overlay-shell {
+  display: grid;
+  gap: 10px;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100vh;
+  padding: 10px;
+}
+
+.overlay-toolbar {
+  align-items: center;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr auto;
+}
+
+.desktop-window-bar {
+  align-items: center;
+  background: rgba(10, 15, 10, 0.58);
+  border: 1px solid rgba(216, 236, 186, 0.14);
+  border-radius: 8px;
+  display: flex;
+  gap: 8px;
+  grid-column: 1 / -1;
+  justify-content: space-between;
+  min-height: 34px;
+  padding: 4px 5px 4px 10px;
+  -webkit-app-region: drag;
+}
+
+.desktop-window-bar[hidden] {
+  display: none;
+}
+
+.desktop-window-title {
+  color: rgba(249, 243, 223, 0.86);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.desktop-window-actions {
+  align-items: center;
+  display: flex;
+  gap: 4px;
+  -webkit-app-region: no-drag;
+}
+
+.desktop-icon-button {
+  align-items: center;
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(216, 236, 186, 0.14);
+  border-radius: 6px;
+  display: inline-grid;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.76rem;
+  height: 25px;
+  justify-items: center;
+  min-height: 25px;
+  padding: 0;
+  width: 27px;
+}
+
+.overlay-token-meter,
+.overlay-feed-action {
+  min-height: 36px;
+}
+
+.overlay-token-meter {
+  font-size: 0.84rem;
+  padding: 0 10px;
+}
+
+.overlay-feed-action {
+  padding: 0 13px;
+}
+
+.overlay-state-grid {
+  display: grid;
+  gap: 6px;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.overlay-state-grid button {
+  background: rgba(255, 255, 255, 0.045);
+  font-size: 0.78rem;
+  min-height: 32px;
+  padding: 0 6px;
+}
+
+.overlay-state-grid button[aria-pressed="true"] {
+  background: rgba(143, 209, 79, 0.16);
+  border-color: rgba(178, 242, 106, 0.72);
+  color: var(--green-strong);
+}
+
+.overlay-widget {
+  bottom: auto;
+  justify-self: center;
+  max-width: 100%;
+  position: relative;
+  right: auto;
+  width: min(306px, calc(100vw - 20px));
+}
+
+.overlay-speech {
+  font-size: 0.86rem;
+  min-height: 82px;
+  padding: 12px 13px;
+}
+
+.overlay-card {
+  min-height: min(236px, calc(100vh - 190px));
+}
+
+.overlay-widget .goblin-stage {
+  transform: scale(0.98);
+  transform-origin: center;
+}
+
+body.desktop-mode {
+  background: transparent;
+}
+
+.desktop-mode .overlay-shell {
+  background: transparent;
+  gap: 8px;
+  padding: 8px;
+}
+
+.desktop-mode .overlay-toolbar {
+  background: rgba(12, 18, 13, 0.72);
+  border: 1px solid rgba(216, 236, 186, 0.16);
+  border-radius: 8px;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.34);
+  padding: 7px;
+  -webkit-app-region: drag;
+}
+
+.desktop-mode .overlay-token-meter,
+.desktop-mode .overlay-feed-action,
+.desktop-mode button {
+  -webkit-app-region: no-drag;
+}
+
+.desktop-mode [data-debug-controls] {
+  display: none;
+}
+
+.desktop-mode.is-debug [data-debug-controls] {
+  display: grid;
+}
+
+.desktop-mode .overlay-widget {
+  align-self: start;
+  width: min(328px, calc(100vw - 16px));
+}
+
+.desktop-mode .overlay-speech {
+  box-shadow: 4px 4px 0 #12170f;
+  font-size: 0.84rem;
+  min-height: 72px;
+}
+
+.desktop-mode .overlay-card {
+  background:
+    linear-gradient(180deg, rgba(178, 242, 106, 0.12), rgba(13, 18, 13, 0.72)),
+    rgba(17, 23, 15, 0.78);
+  min-height: min(246px, calc(100vh - 176px));
+  -webkit-app-region: drag;
+}
+
+.desktop-mode .mood-props,
+.desktop-mode .goblin-stage,
+.desktop-mode .speech-bubble {
+  -webkit-app-region: no-drag;
+}
+
+.desktop-mode .overlay-feed-action {
+  min-width: 72px;
+}
+
+@media (max-height: 520px) {
+  .overlay-state-grid {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+  }
+
+  .overlay-state-grid button {
+    font-size: 0.7rem;
+    min-height: 28px;
+  }
+
+  .overlay-speech {
+    min-height: 58px;
+  }
+
+  .overlay-card {
+    min-height: 176px;
+  }
+
+  .overlay-widget .goblin-stage {
+    transform: scale(0.82);
+  }
+}

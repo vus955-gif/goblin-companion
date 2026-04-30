@@ -1,0 +1,6 @@
+{
+  "id": "goblin-companion",
+  "displayName": "Goblin Companion",
+  "description": "A snarky pixel goblin coding companion for the native Codex avatar overlay.",
+  "spritesheetPath": "spritesheet.png"
+}

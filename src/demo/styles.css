@@ -1,0 +1,1378 @@
+:root {
+  color-scheme: dark;
+  --bg: #10130f;
+  --ink: #f4f0df;
+  --muted: #aeb8a5;
+  --panel: rgba(22, 27, 20, 0.9);
+  --panel-solid: #171d15;
+  --line: rgba(216, 236, 186, 0.15);
+  --green: #8fd14f;
+  --green-strong: #b2f26a;
+  --amber: #f3b447;
+  --red: #ff5c55;
+  --cyan: #6bd3dd;
+  --violet: #a887ff;
+  --shadow: 0 22px 70px rgba(0, 0, 0, 0.42);
+  --radius: 8px;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  overflow-x: hidden;
+  background:
+    linear-gradient(90deg, rgba(143, 209, 79, 0.04) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(143, 209, 79, 0.04) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent 42%),
+    linear-gradient(145deg, #0e120d 0%, #15170f 45%, #19130d 100%);
+  background-size: 36px 36px, 36px 36px, auto, auto;
+  color: var(--ink);
+}
+
+button {
+  border: 1px solid rgba(216, 236, 186, 0.18);
+  border-radius: 7px;
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+button:hover {
+  border-color: rgba(178, 242, 106, 0.58);
+  transform: translateY(-1px);
+}
+
+button:focus-visible {
+  outline: 3px solid rgba(107, 211, 221, 0.52);
+  outline-offset: 2px;
+}
+
+.demo-shell {
+  min-height: 100vh;
+  padding: clamp(18px, 4vw, 44px);
+  position: relative;
+}
+
+.workspace {
+  margin: 0 auto;
+  max-width: 1180px;
+}
+
+.workspace-header {
+  align-items: flex-end;
+  display: flex;
+  gap: 24px;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.eyebrow {
+  color: var(--green-strong);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  margin: 0 0 8px;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: 5.2rem;
+  line-height: 0.94;
+  max-width: 760px;
+}
+
+.top-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.token-meter {
+  align-items: center;
+  background: rgba(13, 18, 13, 0.72);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  display: inline-flex;
+  gap: 10px;
+  min-height: 42px;
+  padding: 0 14px;
+}
+
+.token-dot {
+  background: linear-gradient(135deg, #ffd86a, #bf7f1f);
+  border: 1px solid rgba(255, 236, 160, 0.7);
+  border-radius: 50%;
+  box-shadow: 0 0 18px rgba(243, 180, 71, 0.34);
+  height: 14px;
+  width: 14px;
+}
+
+.feed-action {
+  background: linear-gradient(135deg, var(--green-strong), #6ea63c);
+  color: #11190e;
+  min-height: 42px;
+  padding: 0 17px;
+}
+
+.editor-layout {
+  align-items: stretch;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+}
+
+.editor-window,
+.controls-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.editor-titlebar {
+  align-items: center;
+  background: rgba(9, 12, 10, 0.88);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  gap: 9px;
+  min-height: 48px;
+  padding: 0 14px;
+}
+
+.window-dot {
+  border-radius: 50%;
+  height: 11px;
+  width: 11px;
+}
+
+.window-dot.red {
+  background: #ff6d68;
+}
+
+.window-dot.amber {
+  background: #f4c15f;
+}
+
+.window-dot.green {
+  background: #78d478;
+}
+
+.editor-tab {
+  border-left: 1px solid rgba(216, 236, 186, 0.12);
+  color: var(--muted);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.82rem;
+  margin-left: 8px;
+  padding-left: 14px;
+}
+
+.editor-tab.active {
+  color: var(--ink);
+}
+
+.editor-body {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  min-height: min(62vh, 620px);
+}
+
+.line-numbers {
+  background: rgba(9, 12, 10, 0.44);
+  border-right: 1px solid var(--line);
+  color: rgba(174, 184, 165, 0.62);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.86rem;
+  line-height: 1.95;
+  list-style: none;
+  margin: 0;
+  padding: 24px 14px;
+  text-align: right;
+}
+
+.code-sample {
+  color: #dfe7d4;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 1rem;
+  line-height: 1.75;
+  margin: 0;
+  overflow: auto;
+  padding: 24px;
+  white-space: pre;
+}
+
+.code-sample .muted {
+  color: var(--violet);
+}
+
+.code-sample .string {
+  color: var(--green-strong);
+}
+
+.code-sample .number {
+  color: var(--amber);
+}
+
+.controls-panel {
+  align-self: start;
+  padding: 18px;
+}
+
+.panel-heading {
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+}
+
+.panel-heading h2 {
+  font-size: 1.05rem;
+  line-height: 1.2;
+  margin-bottom: 8px;
+}
+
+.panel-heading p {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.state-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.state-grid button {
+  background: rgba(255, 255, 255, 0.045);
+  min-height: 42px;
+  padding: 0 10px;
+}
+
+.state-grid button[aria-pressed="true"] {
+  background: rgba(143, 209, 79, 0.16);
+  border-color: rgba(178, 242, 106, 0.72);
+  color: var(--green-strong);
+}
+
+.goblin-widget {
+  bottom: 28px;
+  filter: drop-shadow(0 18px 28px rgba(0, 0, 0, 0.34));
+  max-width: min(340px, calc(100vw - 32px));
+  position: fixed;
+  right: 28px;
+  touch-action: none;
+  width: 306px;
+  z-index: 20;
+}
+
+.speech-bubble {
+  background: #f9f3df;
+  border: 3px solid #12170f;
+  border-radius: var(--radius);
+  box-shadow: 6px 6px 0 #12170f;
+  color: #152010;
+  font-size: 0.94rem;
+  font-weight: 800;
+  line-height: 1.35;
+  margin: 0 0 16px;
+  min-height: 74px;
+  padding: 14px 15px;
+  position: relative;
+}
+
+.speech-bubble::after {
+  background: #f9f3df;
+  border-bottom: 3px solid #12170f;
+  border-right: 3px solid #12170f;
+  bottom: -12px;
+  content: "";
+  height: 20px;
+  left: 54px;
+  position: absolute;
+  transform: rotate(45deg);
+  width: 20px;
+}
+
+.goblin-card {
+  align-items: center;
+  background:
+    linear-gradient(180deg, rgba(178, 242, 106, 0.14), rgba(13, 18, 13, 0.88)),
+    var(--panel-solid);
+  border: 2px solid rgba(216, 236, 186, 0.22);
+  border-radius: var(--radius);
+  cursor: grab;
+  display: grid;
+  min-height: 220px;
+  overflow: hidden;
+  padding: 18px;
+  place-items: center;
+  position: relative;
+}
+
+.goblin-widget[data-dragging="true"] .goblin-card {
+  cursor: grabbing;
+}
+
+.goblin-stage {
+  align-items: center;
+  display: grid;
+  height: 178px;
+  justify-items: center;
+  position: relative;
+  width: 220px;
+}
+
+.goblin-image,
+.goblin-svg {
+  display: block;
+  height: 172px;
+  image-rendering: pixelated;
+  max-width: 100%;
+  object-fit: contain;
+  user-select: none;
+  width: 196px;
+}
+
+.goblin-svg {
+  overflow: visible;
+}
+
+.goblin-svg .goblin-character,
+.goblin-svg .goblin-hat,
+.goblin-svg .goblin-eye,
+.goblin-svg .goblin-satchel,
+.goblin-svg .goblin-right-arm,
+.goblin-svg .goblin-left-leg,
+.goblin-svg .goblin-left-foot,
+.goblin-svg .goblin-right-foot {
+  transform-box: fill-box;
+  transform-origin: center;
+  will-change: transform;
+}
+
+.goblin-svg .goblin-eye {
+  transform-origin: center;
+}
+
+.goblin-svg .goblin-hat {
+  transform-origin: 45% 90%;
+}
+
+.goblin-svg .goblin-satchel {
+  transform-origin: 45% 12%;
+}
+
+.goblin-svg .goblin-left-leg {
+  transform-origin: 82% 10%;
+}
+
+.goblin-svg .goblin-right-arm {
+  transform-origin: 18% 8%;
+}
+
+.goblin-fallback {
+  align-items: center;
+  background: repeating-linear-gradient(
+    -45deg,
+    rgba(143, 209, 79, 0.11) 0 10px,
+    rgba(143, 209, 79, 0.04) 10px 20px
+  );
+  border: 2px dashed rgba(178, 242, 106, 0.44);
+  border-radius: var(--radius);
+  color: #d8efbc;
+  display: grid;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  height: 150px;
+  line-height: 1.35;
+  padding: 18px;
+  text-align: center;
+  width: 180px;
+}
+
+.mood-props {
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  position: absolute;
+}
+
+.tear,
+.puke-sprite,
+.zzz-cloud,
+.laptop,
+.alert-marks,
+.feed-token-prop,
+.chew-marks {
+  display: none;
+  position: absolute;
+}
+
+.goblin-widget.is-idle .goblin-character {
+  animation: goblinIdleWalk 2.8s steps(2, end) infinite;
+}
+
+.goblin-widget.is-idle .goblin-left-foot {
+  animation: leftFootStep 2.8s steps(2, end) infinite;
+}
+
+.goblin-widget.is-idle .goblin-right-foot {
+  animation: rightFootStep 2.8s steps(2, end) infinite;
+}
+
+.goblin-widget.is-idle .goblin-hat {
+  animation: hatLag 2.8s ease-in-out infinite;
+}
+
+.goblin-widget.is-idle .goblin-eye {
+  animation: eyeBlink 5.4s steps(1, end) infinite;
+}
+
+.goblin-widget.is-happy .goblin-card {
+  border-color: rgba(178, 242, 106, 0.7);
+}
+
+.goblin-widget.is-happy .goblin-character {
+  animation: goblinCheerHop 920ms steps(5, end) infinite;
+}
+
+.goblin-widget.is-happy .goblin-left-leg {
+  animation: leftArmHappyLift 920ms steps(4, end) infinite;
+}
+
+.goblin-widget.is-happy .goblin-right-arm {
+  animation: rightArmHappyLift 920ms steps(4, end) infinite;
+}
+
+.goblin-widget.is-happy .goblin-left-leg,
+.goblin-widget.is-happy .goblin-right-arm {
+  paint-order: stroke fill;
+  stroke: #020403;
+  stroke-linejoin: miter;
+  stroke-width: 26px;
+}
+
+.goblin-widget.is-happy .goblin-hat {
+  animation: hatCheer 920ms steps(5, end) infinite;
+}
+
+.goblin-widget.is-happy .goblin-satchel {
+  animation: satchelHappyBounce 920ms steps(4, end) infinite;
+}
+
+.goblin-widget.is-happy .goblin-left-foot {
+  animation: leftFootKick 920ms steps(4, end) infinite;
+}
+
+.goblin-widget.is-happy .goblin-right-foot {
+  animation: rightFootKick 920ms steps(4, end) infinite;
+}
+
+.goblin-widget.is-sad .goblin-card {
+  filter: grayscale(0.34);
+}
+
+.goblin-widget.is-sad .goblin-character {
+  animation: goblinSadShuffle 3.2s ease-in-out infinite;
+}
+
+.goblin-widget.is-sad .goblin-hat {
+  animation: hatDroop 3.2s ease-in-out infinite;
+}
+
+.goblin-widget.is-sad .goblin-satchel {
+  animation: satchelSadSwing 3.2s ease-in-out infinite;
+}
+
+.goblin-widget.is-sad .tear {
+  background: linear-gradient(#9be7ff, #3aa7d8);
+  border-radius: 70% 70% 80% 80%;
+  display: block;
+  height: 22px;
+  right: 92px;
+  top: 74px;
+  transform: rotate(14deg);
+  width: 12px;
+}
+
+.goblin-widget.is-sick .goblin-card {
+  border-color: rgba(148, 217, 98, 0.52);
+}
+
+.goblin-widget.is-sick .goblin-character {
+  animation: goblinSickStagger 680ms ease-in-out infinite;
+}
+
+.goblin-widget.is-sick .goblin-hat {
+  animation: hatSickWobble 680ms ease-in-out infinite;
+}
+
+.goblin-widget.is-sick .goblin-satchel {
+  animation: satchelSickWobble 680ms ease-in-out infinite;
+}
+
+.puke-sprite {
+  height: 64px;
+  image-rendering: pixelated;
+  left: 202px;
+  top: 112px;
+  transform-origin: 6px 26px;
+  width: 116px;
+}
+
+.puke-frame,
+.puke-drop {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.puke-frame-b {
+  opacity: 0;
+}
+
+.goblin-widget.is-sick .puke-sprite {
+  animation: pukeSpriteJolt 680ms steps(2, end) infinite;
+  display: block;
+}
+
+.goblin-widget.is-sick .puke-frame-a {
+  animation: pukeFrameA 520ms steps(1, end) infinite;
+}
+
+.goblin-widget.is-sick .puke-frame-b {
+  animation: pukeFrameB 520ms steps(1, end) infinite;
+}
+
+.goblin-widget.is-sick .puke-drop-one,
+.goblin-widget.is-sick .puke-drop-one-fill {
+  animation: pukeDropLow 780ms steps(2, end) infinite;
+}
+
+.goblin-widget.is-sick .puke-drop-two,
+.goblin-widget.is-sick .puke-drop-two-fill {
+  animation: pukeDropHigh 920ms steps(2, end) infinite;
+}
+
+.goblin-widget.is-sleeping .goblin-card {
+  opacity: 0.86;
+}
+
+.goblin-widget.is-sleeping .goblin-character {
+  animation: goblinSleepNod 4.6s ease-in-out infinite;
+}
+
+.goblin-widget.is-sleeping .goblin-hat {
+  animation: hatSleepNod 4.6s ease-in-out infinite;
+}
+
+.goblin-widget.is-sleeping .goblin-eye {
+  opacity: 0.22;
+}
+
+.goblin-widget.is-sleeping .zzz-cloud {
+  animation: zzzFloat 2.8s ease-in-out infinite;
+  background: #f9f3df;
+  border: 2px solid #12170f;
+  border-radius: 999px;
+  color: #17230f;
+  display: block;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 0.92rem;
+  font-weight: 900;
+  padding: 7px 12px;
+  right: 42px;
+  top: 24px;
+}
+
+.goblin-widget.is-typing .laptop {
+  background: linear-gradient(180deg, #2d3a40, #151d20);
+  border: 2px solid #0a0e0f;
+  border-radius: 5px 5px 8px 8px;
+  bottom: 38px;
+  display: block;
+  height: 46px;
+  left: 86px;
+  width: 124px;
+}
+
+.goblin-widget.is-typing .laptop::after {
+  animation: laptopScan 900ms steps(2, end) infinite;
+  background: linear-gradient(90deg, transparent, rgba(107, 211, 221, 0.8), transparent);
+  content: "";
+  height: 4px;
+  left: 20px;
+  position: absolute;
+  right: 20px;
+  top: 13px;
+}
+
+.goblin-widget.is-typing .goblin-character {
+  animation: goblinTypingTap 520ms steps(2, end) infinite;
+}
+
+.goblin-widget.is-typing .goblin-right-arm {
+  animation: rightArmTyping 260ms steps(2, end) infinite;
+}
+
+.goblin-widget.is-typing .goblin-satchel {
+  animation: satchelTyping 520ms steps(2, end) infinite;
+}
+
+.goblin-widget.is-alert .goblin-card {
+  border-color: rgba(255, 92, 85, 0.84);
+  box-shadow: inset 0 0 0 2px rgba(255, 92, 85, 0.22);
+}
+
+.goblin-widget.is-alert .goblin-character {
+  animation: goblinAlertStep 320ms steps(2, end) infinite;
+}
+
+.goblin-widget.is-alert .goblin-hat {
+  animation: hatAlertSnap 320ms steps(2, end) infinite;
+}
+
+.goblin-widget.is-alert .goblin-eye {
+  animation: eyeAlertSquint 320ms steps(2, end) infinite;
+}
+
+.goblin-widget.is-alert .alert-marks {
+  animation: alertFlash 520ms steps(2, end) infinite;
+  color: var(--red);
+  display: block;
+  font-family: Impact, Haettenschweiler, "Arial Narrow Bold", sans-serif;
+  font-size: 3.4rem;
+  letter-spacing: 0;
+  right: 40px;
+  text-shadow: 2px 2px 0 #111;
+  top: 12px;
+}
+
+.goblin-widget.is-feed .goblin-card {
+  border-color: rgba(243, 180, 71, 0.76);
+}
+
+.goblin-widget.is-feed .goblin-character {
+  animation: goblinSnackStep 840ms cubic-bezier(0.2, 1.7, 0.45, 1) infinite;
+}
+
+.goblin-widget.is-feed .goblin-right-arm {
+  animation: rightArmSnack 1.25s steps(3, end) infinite;
+}
+
+.goblin-widget.is-feed .goblin-hat {
+  animation: hatSnackBounce 1.25s ease-in-out infinite;
+}
+
+.feed-token-prop {
+  height: 54px;
+  left: 148px;
+  top: 124px;
+  transform-origin: 50% 50%;
+  width: 54px;
+}
+
+.feed-token-coin,
+.feed-token-bite,
+.chew-mark {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.feed-token-bite,
+.chew-marks {
+  opacity: 0;
+}
+
+.chew-marks {
+  height: 36px;
+  left: 174px;
+  top: 80px;
+  width: 54px;
+}
+
+.goblin-widget.is-feed .feed-token-prop {
+  animation: feedTokenToMouth 1.25s steps(6, end) infinite;
+  display: block;
+}
+
+.goblin-widget.is-feed .feed-token-coin {
+  animation: feedTokenChewSquash 1.25s steps(4, end) infinite;
+}
+
+.goblin-widget.is-feed .feed-token-bite {
+  animation: feedTokenBite 1.25s steps(1, end) infinite;
+}
+
+.goblin-widget.is-feed .chew-marks {
+  animation: chewMarksAppear 1.25s steps(1, end) infinite;
+  display: block;
+}
+
+.goblin-widget.is-feed .chew-mark-one {
+  animation: chewMarkOne 1.25s steps(2, end) infinite;
+}
+
+.goblin-widget.is-feed .chew-mark-two {
+  animation: chewMarkTwo 1.25s steps(2, end) infinite;
+}
+
+.goblin-widget.is-feed .chew-mark-three {
+  animation: chewMarkThree 1.25s steps(2, end) infinite;
+}
+
+@keyframes goblinIdleWalk {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(4px, -3px);
+  }
+}
+
+@keyframes leftFootStep {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(7px);
+  }
+}
+
+@keyframes rightFootStep {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(-6px);
+  }
+}
+
+@keyframes hatLag {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(3px) rotate(-1deg);
+  }
+}
+
+@keyframes eyeBlink {
+  0%,
+  91%,
+  100% {
+    transform: scaleY(1);
+  }
+  94%,
+  96% {
+    transform: scaleY(0.16);
+  }
+}
+
+@keyframes goblinCheerHop {
+  0% {
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
+  12% {
+    transform: translateY(44px) scale(1.04, 0.94) rotate(-1deg);
+  }
+  30% {
+    transform: translateY(-170px) scale(0.98, 1.04) rotate(-3deg);
+  }
+  48% {
+    transform: translateY(-260px) scale(1) rotate(3deg);
+  }
+  68% {
+    transform: translateY(-110px) scale(1.01, 0.98) rotate(1deg);
+  }
+  82% {
+    transform: translateY(34px) scale(1.03, 0.95) rotate(0deg);
+  }
+  100% {
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
+}
+
+@keyframes hatCheer {
+  0% {
+    transform: translateY(0) rotate(0deg);
+  }
+  12% {
+    transform: translateY(28px) rotate(-3deg);
+  }
+  30% {
+    transform: translateY(-88px) rotate(5deg);
+  }
+  48% {
+    transform: translateY(-140px) rotate(-7deg);
+  }
+  68% {
+    transform: translateY(-52px) rotate(4deg);
+  }
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+}
+
+@keyframes leftArmHappyLift {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  12% {
+    transform: translate(12px, 34px) rotate(-4deg);
+  }
+  30%,
+  58% {
+    transform: translate(-230px, -520px) rotate(-18deg);
+  }
+  78% {
+    transform: translate(-105px, -250px) rotate(-8deg);
+  }
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+}
+
+@keyframes rightArmHappyLift {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  12% {
+    transform: translate(-12px, 34px) rotate(4deg);
+  }
+  30%,
+  58% {
+    transform: translate(-62px, -500px) rotate(18deg);
+  }
+  78% {
+    transform: translate(-28px, -230px) rotate(8deg);
+  }
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+}
+
+@keyframes satchelHappyBounce {
+  0% {
+    transform: translateY(0) rotate(0deg);
+  }
+  30%,
+  58% {
+    transform: translateY(-50px) rotate(-3deg);
+  }
+  82% {
+    transform: translateY(28px) rotate(2deg);
+  }
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+}
+
+@keyframes leftFootKick {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  12% {
+    transform: translate(18px, 42px) rotate(-2deg);
+  }
+  30%,
+  58% {
+    transform: translate(-38px, -66px) rotate(-12deg);
+  }
+  82% {
+    transform: translate(32px, 26px) rotate(5deg);
+  }
+}
+
+@keyframes rightFootKick {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  12% {
+    transform: translate(-18px, 38px) rotate(3deg);
+  }
+  30%,
+  58% {
+    transform: translate(44px, -60px) rotate(13deg);
+  }
+  82% {
+    transform: translate(-28px, 34px) rotate(-5deg);
+  }
+}
+
+@keyframes goblinSadShuffle {
+  0%,
+  100% {
+    transform: translateY(6px) rotate(-1deg);
+  }
+  50% {
+    transform: translateY(10px) rotate(1deg);
+  }
+}
+
+@keyframes hatDroop {
+  0%,
+  100% {
+    transform: translateY(6px) rotate(-3deg);
+  }
+  50% {
+    transform: translateY(9px) rotate(-5deg);
+  }
+}
+
+@keyframes satchelSadSwing {
+  0%,
+  100% {
+    transform: rotate(-1deg);
+  }
+  50% {
+    transform: rotate(2deg);
+  }
+}
+
+@keyframes goblinSickStagger {
+  0%,
+  100% {
+    transform: translateX(0) rotate(0deg);
+  }
+  35% {
+    transform: translateX(-5px) rotate(-2deg);
+  }
+  70% {
+    transform: translateX(4px) rotate(2deg);
+  }
+}
+
+@keyframes hatSickWobble {
+  0%,
+  100% {
+    transform: translateX(0) rotate(0deg);
+  }
+  50% {
+    transform: translateX(-5px) rotate(-4deg);
+  }
+}
+
+@keyframes satchelSickWobble {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(4px);
+  }
+}
+
+@keyframes pukeSpriteJolt {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(3deg);
+  }
+  50% {
+    transform: translate(3px, 2px) rotate(0deg);
+  }
+}
+
+@keyframes pukeFrameA {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes pukeFrameB {
+  0%,
+  49% {
+    opacity: 0;
+  }
+  50%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes pukeDropLow {
+  0%,
+  100% {
+    opacity: 0.8;
+    transform: translate(0, 0);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(8px, 5px);
+  }
+}
+
+@keyframes pukeDropHigh {
+  0%,
+  100% {
+    opacity: 0;
+    transform: translate(-4px, -2px);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(7px, 2px);
+  }
+}
+
+@keyframes goblinSleepNod {
+  0%,
+  100% {
+    transform: translateY(5px) rotate(-1deg);
+  }
+  50% {
+    transform: translateY(0) rotate(1deg);
+  }
+}
+
+@keyframes hatSleepNod {
+  0%,
+  100% {
+    transform: translateY(7px) rotate(-4deg);
+  }
+  50% {
+    transform: translateY(2px) rotate(-1deg);
+  }
+}
+
+@keyframes zzzFloat {
+  0%,
+  100% {
+    opacity: 0.68;
+    transform: translateY(5px);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes goblinTypingTap {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(3px);
+  }
+}
+
+@keyframes rightArmTyping {
+  0%,
+  100% {
+    transform: translate(-26px, -20px) rotate(22deg);
+  }
+  50% {
+    transform: translate(-20px, -16px) rotate(12deg);
+  }
+}
+
+@keyframes satchelTyping {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(2px);
+  }
+}
+
+@keyframes laptopScan {
+  0%,
+  100% {
+    transform: translateX(-8px);
+  }
+  50% {
+    transform: translateX(8px);
+  }
+}
+
+@keyframes goblinAlertStep {
+  0%,
+  100% {
+    transform: translateX(-5px) rotate(-1deg);
+  }
+  50% {
+    transform: translateX(5px) rotate(1deg);
+  }
+}
+
+@keyframes hatAlertSnap {
+  0%,
+  100% {
+    transform: translateX(4px) rotate(3deg);
+  }
+  50% {
+    transform: translateX(-4px) rotate(-3deg);
+  }
+}
+
+@keyframes eyeAlertSquint {
+  0%,
+  100% {
+    transform: scaleX(1);
+  }
+  50% {
+    transform: scaleX(1.22);
+  }
+}
+
+@keyframes alertFlash {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.48;
+  }
+}
+
+@keyframes goblinSnackStep {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  36% {
+    transform: translate(-7px, -6px) rotate(-2deg);
+  }
+  66% {
+    transform: translate(-3px, -4px) rotate(1deg);
+  }
+}
+
+@keyframes rightArmSnack {
+  0% {
+    transform: translate(-4px, -2px) rotate(6deg);
+  }
+  28% {
+    transform: translate(-12px, -12px) rotate(16deg);
+  }
+  58% {
+    transform: translate(-24px, -34px) rotate(28deg);
+  }
+  78% {
+    transform: translate(-20px, -30px) rotate(18deg);
+  }
+  100% {
+    transform: translate(-4px, -2px) rotate(6deg);
+  }
+}
+
+@keyframes hatSnackBounce {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-5px) rotate(-2deg);
+  }
+}
+
+@keyframes feedTokenToMouth {
+  0% {
+    opacity: 0;
+    transform: translate(0, 10px) scale(0.74) rotate(-5deg);
+  }
+  12%,
+  34% {
+    opacity: 1;
+    transform: translate(0, 0) scale(0.84) rotate(0deg);
+  }
+  54% {
+    opacity: 1;
+    transform: translate(20px, -38px) scale(0.76) rotate(5deg);
+  }
+  68% {
+    opacity: 1;
+    transform: translate(32px, -58px) scale(0.6) rotate(-4deg);
+  }
+  84% {
+    opacity: 1;
+    transform: translate(32px, -58px) scale(0.48) rotate(5deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(32px, -58px) scale(0.18) rotate(5deg);
+  }
+}
+
+@keyframes feedTokenChewSquash {
+  0%,
+  50% {
+    transform: scale(1);
+  }
+  62% {
+    transform: scale(0.86, 1.1);
+  }
+  76% {
+    transform: scale(1.04, 0.84);
+  }
+  100% {
+    transform: scale(0.7);
+  }
+}
+
+@keyframes feedTokenBite {
+  0%,
+  64% {
+    opacity: 0;
+  }
+  65%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes chewMarksAppear {
+  0%,
+  64%,
+  100% {
+    opacity: 0;
+  }
+  65%,
+  88% {
+    opacity: 1;
+  }
+}
+
+@keyframes chewMarkOne {
+  0%,
+  55% {
+    transform: translate(0, 0) scaleX(0.6);
+  }
+  68% {
+    transform: translate(-4px, -2px) scaleX(1);
+  }
+  100% {
+    transform: translate(-8px, 0) scaleX(0.6);
+  }
+}
+
+@keyframes chewMarkTwo {
+  0%,
+  60% {
+    transform: translate(0, 0) scaleY(0.6);
+  }
+  74% {
+    transform: translate(1px, -5px) scaleY(1);
+  }
+  100% {
+    transform: translate(0, -8px) scaleY(0.6);
+  }
+}
+
+@keyframes chewMarkThree {
+  0%,
+  62% {
+    transform: translate(0, 0) scaleX(0.6);
+  }
+  78% {
+    transform: translate(5px, 1px) scaleX(1);
+  }
+  100% {
+    transform: translate(8px, 0) scaleX(0.6);
+  }
+}
+
+@media (max-width: 880px) {
+  h1 {
+    font-size: 3.8rem;
+  }
+
+  .workspace-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .top-actions {
+    justify-content: flex-start;
+  }
+
+  .editor-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .goblin-widget {
+    width: min(306px, calc(100vw - 32px));
+  }
+}
+
+@media (max-width: 560px) {
+  .demo-shell {
+    padding: 16px;
+  }
+
+  h1 {
+    font-size: 2.55rem;
+  }
+
+  .editor-body {
+    grid-template-columns: 42px minmax(0, 1fr);
+  }
+
+  .line-numbers {
+    padding: 18px 10px;
+  }
+
+  .code-sample {
+    font-size: 0.88rem;
+    padding: 18px;
+  }
+
+  .state-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .speech-bubble {
+    font-size: 0.86rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 1ms !important;
+  }
+}

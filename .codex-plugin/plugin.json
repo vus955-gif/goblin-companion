@@ -1,0 +1,40 @@
+{
+  "name": "goblin-companion",
+  "version": "0.1.0",
+  "description": "A snarky goblin companion for Codex with native avatar assets and a Windows desktop fallback.",
+  "license": "MIT",
+  "skills": "./skills/",
+  "keywords": [
+    "codex",
+    "coding",
+    "companion",
+    "goblin",
+    "svg"
+  ],
+  "interface": {
+    "displayName": "Goblin Companion",
+    "shortDescription": "A snarky goblin companion for Codex coding sessions.",
+    "longDescription": "Goblin Companion provides a native Codex custom avatar asset package plus a transparent Windows desktop fallback for Codex Desktop builds or accounts that do not expose custom avatars yet. It reacts to coding states, shows short reviewer-style comments, supports token feeding, and stays local-first.",
+    "developerName": "vus955-gif",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Assets",
+      "Local UI",
+      "Native Avatar",
+      "Desktop Fallback",
+      "Event Bridge"
+    ],
+    "defaultPrompt": [
+      "Launch the Goblin Companion desktop fallback.",
+      "Install the Goblin Companion native Codex avatar assets.",
+      "Send Goblin Companion reaction events."
+    ],
+    "brandColor": "#84A83D",
+    "composerIcon": "./assets/goblin.svg",
+    "logo": "./assets/goblin.svg",
+    "screenshots": [
+      "./assets/preview.png"
+    ]
+  }
+}

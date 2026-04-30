@@ -1,0 +1,12 @@
+node_modules/
+.DS_Store
+Thumbs.db
+*.log
+.agents/
+.superpowers/
+.worktrees/
+tmp/
+coverage/
+dist/
+.env
+.env.*

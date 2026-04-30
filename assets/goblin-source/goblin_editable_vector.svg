@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="2048" height="2048" viewBox="0 0 2048 2048" version="1.1">
+  <title>Pixel goblin – editable SVG recreation</title>
+  <desc>Hand-built vector recreation of the attached pixel-art goblin, with editable paths, gradients and pixel-style edges.</desc>
+
+  <defs>
+    <radialGradient id="bgGrad" cx="50%" cy="58%" r="72%">
+      <stop offset="0%" stop-color="#151815"/>
+      <stop offset="58%" stop-color="#0c0d0c"/>
+      <stop offset="100%" stop-color="#020303"/>
+    </radialGradient>
+
+    <linearGradient id="platformGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#2c2d2e"/>
+      <stop offset="62%" stop-color="#1b1c1d"/>
+      <stop offset="100%" stop-color="#111213"/>
+    </linearGradient>
+
+    <linearGradient id="hatGrad" x1="520" y1="455" x2="1370" y2="945" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#78ad55"/>
+      <stop offset="45%" stop-color="#5f9843"/>
+      <stop offset="100%" stop-color="#3d7431"/>
+    </linearGradient>
+
+    <linearGradient id="skinGrad" x1="640" y1="815" x2="1460" y2="1545" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#c9ed59"/>
+      <stop offset="55%" stop-color="#9dcb40"/>
+      <stop offset="100%" stop-color="#81b838"/>
+    </linearGradient>
+
+    <linearGradient id="shortsGrad" x1="840" y1="1260" x2="1238" y2="1450" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#7a4b2f"/>
+      <stop offset="100%" stop-color="#4a2f22"/>
+    </linearGradient>
+
+    <filter id="softSilhouette" x="-20%" y="-20%" width="140%" height="150%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="18"/>
+    </filter>
+
+    <filter id="platformBlur" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+
+    <g id="goblinSilhouette">
+      <path d="M632 455 H925 V521 H1067 V584 H1198 V648 H1252 V716 H1315 V778 H1372 V910 H1300 V882 H984 V944 H918 V888 H678 V824 H776 V675 H703 V620 H626 V681 H528 V538 H632 Z"/>
+      <path d="M642 812 H862 V878 H918 V942 H986 V885 H1305 V953 H1449 V1114 H1334 V1228 H1217 V1280 H1296 V1392 H1215 V1452 H1198 V1505 H1291 V1565 H1065 V1474 H958 V1565 H815 V1458 H742 V1382 H690 V1212 H767 V1124 H840 V1054 H778 V987 H714 V956 H642 Z"/>
+      <path d="M834 1258 H1245 V1453 H1135 V1510 H970 V1453 H834 Z"/>
+    </g>
+  </defs>
+
+  <rect width="2048" height="2048" fill="url(#bgGrad)"/>
+
+  <!-- Very soft glow behind the character, matching the dark halo in the reference. -->
+  <ellipse cx="1020" cy="1035" rx="570" ry="615" fill="#263223" opacity="0.25" filter="url(#platformBlur)"/>
+
+  <!-- Rounded base/platform. -->
+  <rect x="278" y="1546" width="1438" height="706" rx="140" ry="140"
+        fill="#050606" opacity="0.70" filter="url(#platformBlur)"/>
+  <rect x="278" y="1542" width="1438" height="706" rx="140" ry="140"
+        fill="url(#platformGrad)" stroke="#444648" stroke-width="18"/>
+  <path d="M418 1562 H1563" stroke="#5b5d60" stroke-width="9" opacity="0.35"/>
+
+  <g shape-rendering="crispEdges">
+    <use href="#goblinSilhouette" fill="#000000" opacity="0.82" filter="url(#softSilhouette)"/>
+    <use href="#goblinSilhouette" fill="#020403"/>
+
+    <!-- Body and limbs -->
+    <path fill="url(#skinGrad)"
+          d="M671 837 H847 V891 H915 V953 H986 V891 H1280 V973 H1413 V1085 H1286 V1198 H1168 V1267 H1260 V1360 H1190 V1418 H858 V1418 H778 V1363 H724 V1228 H803 V1143 H865 V1055 H802 V1000 H738 V956 H671 Z"/>
+    <path fill="#94c744" d="M748 1197 H897 V1374 H837 V1450 H748 Z"/>
+    <path fill="#99c948" d="M1220 1280 H1293 V1375 H1220 Z"/>
+    <rect x="852" y="1452" width="117" height="96" fill="#9fcb43"/>
+    <path fill="#9aca43" d="M1101 1452 H1177 V1517 H1281 V1545 H1101 Z"/>
+
+    <!-- Skin shadows/highlights to mimic the reference glow. -->
+    <rect x="894" y="1194" width="86" height="126" fill="#607f32" opacity="0.56"/>
+    <rect x="728" y="842" width="134" height="70" fill="#d9f06d" opacity="0.22"/>
+    <path d="M1185 973 H1410 V1085 H1286 V1196 H1168 V1264 H1260 V1359 H1190 V1418 H1010 V920 H1280 Z"
+          fill="#8bbd3b" opacity="0.18"/>
+
+    <!-- Hat -->
+    <path fill="url(#hatGrad)"
+          d="M657 484 H892 V544 H1038 V604 H1168 V664 H1224 V728 H1289 V792 H1341 V875 H1297 V853 H958 V914 H932 V853 H794 V826 H794 V675 H725 V610 H654 V660 H552 V557 H657 Z"/>
+    <rect x="791" y="675" width="92" height="152" fill="#2b5626" opacity="0.38"/>
+    <path fill="#2f5f27" opacity="0.88"
+          d="M795 802 H1336 V883 H984 V943 H918 V886 H670 V827 H795 Z"/>
+    <rect x="656" y="484" width="232" height="62" fill="#8cc05e" opacity="0.24"/>
+    <path d="M1036 604 H1168 V664 H1224 V728 H1289 V792 H1341 V875 H1278 V824 H1214 V756 H1152 V695 H1040 Z"
+          fill="#2f5d29" opacity="0.18"/>
+
+    <!-- Shorts / belt -->
+    <path fill="url(#shortsGrad)" d="M846 1305 L1234 1328 V1435 H847 Z"/>
+    <path fill="#b7863f" d="M865 1261 L1232 1278 V1328 L862 1308 Z" opacity="0.95"/>
+    <path d="M846 1305 L1234 1328 V1435 H847 Z" fill="#3c281f" opacity="0.18"/>
+
+    <!-- Pixel eye -->
+    <rect x="1148" y="947" width="72" height="75" fill="#020202"/>
+  </g>
+</svg>

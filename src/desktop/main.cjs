@@ -1,0 +1,523 @@
+const { execFile } = require("node:child_process");
+const { createServer } = require("node:http");
+const { existsSync, mkdirSync, readFileSync, writeFileSync } = require("node:fs");
+const path = require("node:path");
+const { app, BrowserWindow, ipcMain, powerMonitor, screen } = require("electron");
+
+const DEFAULT_EVENT_PORT = 48735;
+const AUTO_SIGNAL_INTERVAL_MS = 2500;
+const EXTERNAL_EVENT_TTL_MS = 20000;
+const MAX_EVENT_BODY_BYTES = 16 * 1024;
+const MAX_EVENT_COMMENT_LENGTH = 240;
+const WINDOW_STATE_FILE = "desktop-window-state.json";
+const VALID_STATES = new Set([
+  "idle",
+  "happy",
+  "sad",
+  "sick",
+  "sleeping",
+  "typing",
+  "alert",
+  "feed"
+]);
+
+const projectRoot = process.env.GOBLIN_COMPANION_ROOT || path.resolve(__dirname, "..", "..");
+const monitoredWorkspace = process.env.GOBLIN_WORKSPACE || null;
+const eventPort = Number(process.env.GOBLIN_EVENT_PORT) || DEFAULT_EVENT_PORT;
+
+let mainWindow = null;
+let eventServer = null;
+let latestExternalEvent = null;
+let latestForegroundWindow = null;
+let foregroundPoll = null;
+let autoSignalTimer = null;
+
+const hasSingleInstanceLock = app.requestSingleInstanceLock();
+
+if (!hasSingleInstanceLock) {
+  app.quit();
+}
+
+function getStateFilePath() {
+  return path.join(app.getPath("userData"), WINDOW_STATE_FILE);
+}
+
+function readDesktopState() {
+  const statePath = getStateFilePath();
+
+  if (!existsSync(statePath)) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(readFileSync(statePath, "utf8"));
+  } catch (error) {
+    console.warn("Goblin Companion could not read desktop state.", error);
+    return {};
+  }
+}
+
+function writeDesktopState(state) {
+  const statePath = getStateFilePath();
+
+  try {
+    mkdirSync(path.dirname(statePath), { recursive: true });
+    writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, "utf8");
+  } catch (error) {
+    console.warn("Goblin Companion could not save desktop state.", error);
+  }
+}
+
+function clampBounds(bounds) {
+  const workArea = screen.getPrimaryDisplay().workArea;
+  const width = Math.min(Math.max(Number(bounds?.width) || 360, 260), 520);
+  const height = Math.min(Math.max(Number(bounds?.height) || 520, 320), 680);
+  const x = Math.min(
+    Math.max(Number(bounds?.x) || workArea.x + workArea.width - width - 56, workArea.x),
+    workArea.x + workArea.width - width
+  );
+  const y = Math.min(
+    Math.max(Number(bounds?.y) || workArea.y + 72, workArea.y),
+    workArea.y + workArea.height - height
+  );
+
+  return {
+    height: Math.round(height),
+    width: Math.round(width),
+    x: Math.round(x),
+    y: Math.round(y)
+  };
+}
+
+function saveWindowBounds() {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return;
+  }
+
+  writeDesktopState({
+    bounds: mainWindow.getBounds()
+  });
+}
+
+function scheduleWindowBoundsSave() {
+  clearTimeout(scheduleWindowBoundsSave.timer);
+  scheduleWindowBoundsSave.timer = setTimeout(saveWindowBounds, 250);
+}
+
+function stateToSignals(state) {
+  switch (state) {
+    case "alert":
+      return { hasUncaughtException: true };
+    case "feed":
+      return { wasFed: true };
+    case "sick":
+      return { hasBug: true };
+    case "happy":
+      return { testsGreen: true };
+    case "sad":
+      return { minutesSinceCommit: 90 };
+    case "typing":
+      return { isTyping: true };
+    case "sleeping":
+      return { idleMinutes: 10 };
+    default:
+      return {};
+  }
+}
+
+function sendSignals(payload) {
+  if (!mainWindow || mainWindow.isDestroyed() || mainWindow.webContents.isDestroyed()) {
+    return;
+  }
+
+  mainWindow.webContents.send("goblin:signals", {
+    ...payload,
+    now: Date.now()
+  });
+}
+
+function isEventFresh(event) {
+  return Boolean(event && Date.now() - event.receivedAt <= EXTERNAL_EVENT_TTL_MS);
+}
+
+function getFreshExternalSignals() {
+  if (!isEventFresh(latestExternalEvent)) {
+    latestExternalEvent = null;
+    return {};
+  }
+
+  return {
+    comment: latestExternalEvent.comment,
+    signals: stateToSignals(latestExternalEvent.state),
+    state: latestExternalEvent.state
+  };
+}
+
+function parseJsonBody(request) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let byteLength = 0;
+    let settled = false;
+
+    function fail(error) {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      reject(error);
+      request.destroy();
+    }
+
+    request.on("data", (chunk) => {
+      byteLength += chunk.length;
+
+      if (byteLength > MAX_EVENT_BODY_BYTES) {
+        fail(new Error(`Event payload is too large. Limit: ${MAX_EVENT_BODY_BYTES} bytes.`));
+        return;
+      }
+
+      chunks.push(chunk);
+    });
+    request.on("error", (error) => {
+      if (!settled) {
+        settled = true;
+        reject(error);
+      }
+    });
+    request.on("end", () => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      const rawBody = Buffer.concat(chunks).toString("utf8");
+
+      if (!rawBody.trim()) {
+        resolve({});
+        return;
+      }
+
+      try {
+        resolve(JSON.parse(rawBody));
+      } catch (error) {
+        reject(error);
+      }
+    });
+  });
+}
+
+function normalizeEventComment(value) {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const normalizedComment = value.trim().replace(/\s+/g, " ");
+  return normalizedComment ? normalizedComment.slice(0, MAX_EVENT_COMMENT_LENGTH) : undefined;
+}
+
+function sendJson(response, statusCode, body) {
+  response.writeHead(statusCode, {
+    "content-type": "application/json; charset=utf-8"
+  });
+  response.end(JSON.stringify(body));
+}
+
+function startEventBridge() {
+  eventServer = createServer(async (request, response) => {
+    if (!request.url) {
+      sendJson(response, 400, { ok: false, error: "Missing URL." });
+      return;
+    }
+
+    const requestUrl = new URL(request.url, `http://127.0.0.1:${eventPort}`);
+
+    if (request.method === "GET" && requestUrl.pathname === "/health") {
+      sendJson(response, 200, { ok: true });
+      return;
+    }
+
+    if (request.method !== "POST" || requestUrl.pathname !== "/event") {
+      sendJson(response, 404, { ok: false, error: "Not found." });
+      return;
+    }
+
+    try {
+      const body = await parseJsonBody(request);
+      const state = String(body.state || requestUrl.searchParams.get("state") || "idle");
+
+      if (!VALID_STATES.has(state)) {
+        sendJson(response, 400, { ok: false, error: `Unknown state: ${state}` });
+        return;
+      }
+
+      latestExternalEvent = {
+        comment: normalizeEventComment(body.comment),
+        receivedAt: Date.now(),
+        state
+      };
+
+      sendSignals({
+        comment: latestExternalEvent.comment,
+        signals: stateToSignals(state),
+        source: "event-bridge",
+        state
+      });
+      sendJson(response, 200, { ok: true, state });
+    } catch (error) {
+      sendJson(response, 400, {
+        ok: false,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
+  eventServer.listen(eventPort, "127.0.0.1", () => {
+    console.log(`Goblin Companion event bridge: http://127.0.0.1:${eventPort}/event`);
+  });
+
+  eventServer.on("error", (error) => {
+    console.warn("Goblin Companion event bridge could not start.", error);
+  });
+}
+
+function getForegroundWindowScript() {
+  return `
+Add-Type @"
+using System;
+using System.Runtime.InteropServices;
+using System.Text;
+public static class GoblinForegroundWindow {
+  [DllImport("user32.dll")]
+  public static extern IntPtr GetForegroundWindow();
+  [DllImport("user32.dll", SetLastError=true)]
+  public static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int count);
+  [DllImport("user32.dll")]
+  public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+}
+"@
+$handle = [GoblinForegroundWindow]::GetForegroundWindow()
+$titleBuilder = New-Object System.Text.StringBuilder 512
+[GoblinForegroundWindow]::GetWindowText($handle, $titleBuilder, $titleBuilder.Capacity) | Out-Null
+$processId = 0
+[GoblinForegroundWindow]::GetWindowThreadProcessId($handle, [ref]$processId) | Out-Null
+$process = Get-Process -Id $processId -ErrorAction SilentlyContinue
+[pscustomobject]@{
+  ProcessName = if ($process) { $process.ProcessName } else { "" }
+  Title = $titleBuilder.ToString()
+} | ConvertTo-Json -Compress
+`;
+}
+
+function pollForegroundWindow() {
+  if (process.platform !== "win32" || foregroundPoll) {
+    return;
+  }
+
+  foregroundPoll = execFile(
+    "powershell.exe",
+    ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", getForegroundWindowScript()],
+    {
+      timeout: 2200,
+      windowsHide: true
+    },
+    (error, stdout) => {
+      foregroundPoll = null;
+
+      if (error || !stdout.trim()) {
+        return;
+      }
+
+      try {
+        latestForegroundWindow = JSON.parse(stdout);
+      } catch {
+        latestForegroundWindow = null;
+      }
+    }
+  );
+}
+
+function isCodexForeground() {
+  const processName = String(latestForegroundWindow?.ProcessName || "");
+  const title = String(latestForegroundWindow?.Title || "");
+  return /codex|openai/i.test(processName) || /codex/i.test(title);
+}
+
+function getMinutesSinceLastCommit() {
+  if (!monitoredWorkspace || !existsSync(path.join(monitoredWorkspace, ".git"))) {
+    return undefined;
+  }
+
+  return new Promise((resolve) => {
+    execFile(
+      "git",
+      ["log", "-1", "--format=%ct"],
+      {
+        cwd: monitoredWorkspace,
+        timeout: 1800,
+        windowsHide: true
+      },
+      (error, stdout) => {
+        if (error) {
+          resolve(undefined);
+          return;
+        }
+
+        const timestampSeconds = Number(stdout.trim());
+        if (!Number.isFinite(timestampSeconds)) {
+          resolve(undefined);
+          return;
+        }
+
+        resolve(Math.max(0, (Date.now() - timestampSeconds * 1000) / 60000));
+      }
+    );
+  });
+}
+
+async function buildAutoSignals() {
+  const idleSeconds = powerMonitor.getSystemIdleTime();
+  const external = getFreshExternalSignals();
+  const minutesSinceCommit = await getMinutesSinceLastCommit();
+
+  return {
+    comment: external.comment,
+    signals: {
+      idleMinutes: idleSeconds / 60,
+      isTyping: isCodexForeground() && idleSeconds < 20,
+      minutesSinceCommit,
+      ...external.signals
+    },
+    source: external.state ? "event-bridge+desktop-auto" : "desktop-auto",
+    state: external.state
+  };
+}
+
+async function publishAutoSignals() {
+  pollForegroundWindow();
+  sendSignals(await buildAutoSignals());
+}
+
+function startAutoSignals() {
+  autoSignalTimer = setInterval(() => {
+    publishAutoSignals().catch((error) => {
+      console.warn("Goblin Companion could not publish desktop signals.", error);
+    });
+  }, AUTO_SIGNAL_INTERVAL_MS);
+
+  publishAutoSignals().catch((error) => {
+    console.warn("Goblin Companion could not publish initial desktop signals.", error);
+  });
+}
+
+function createMainWindow() {
+  const savedState = readDesktopState();
+  const bounds = clampBounds(savedState.bounds);
+
+  mainWindow = new BrowserWindow({
+    ...bounds,
+    alwaysOnTop: true,
+    backgroundColor: "#00000000",
+    frame: false,
+    hasShadow: false,
+    maximizable: false,
+    minimizable: true,
+    resizable: false,
+    show: false,
+    skipTaskbar: true,
+    title: "Goblin Companion",
+    transparent: true,
+    webPreferences: {
+      backgroundThrottling: false,
+      contextIsolation: true,
+      nodeIntegration: false,
+      preload: path.join(__dirname, "preload.cjs")
+    }
+  });
+
+  mainWindow.setAlwaysOnTop(true, "screen-saver");
+  mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+
+  mainWindow.loadFile(path.join(projectRoot, "src", "overlay", "index.html"), {
+    query: {
+      desktop: "1"
+    }
+  });
+
+  mainWindow.once("ready-to-show", () => {
+    mainWindow.setIgnoreMouseEvents(true, { forward: true });
+    mainWindow.showInactive();
+    publishAutoSignals().catch(() => {});
+  });
+
+  mainWindow.on("moved", scheduleWindowBoundsSave);
+  mainWindow.on("resized", scheduleWindowBoundsSave);
+  mainWindow.on("close", saveWindowBounds);
+}
+
+ipcMain.handle("goblin:window-command", (_event, command) => {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return false;
+  }
+
+  if (command === "close") {
+    mainWindow.close();
+    return true;
+  }
+
+  if (command === "minimize") {
+    mainWindow.minimize();
+    return true;
+  }
+
+  if (command === "toggle-pin") {
+    const shouldPin = !mainWindow.isAlwaysOnTop();
+    mainWindow.setAlwaysOnTop(shouldPin, "screen-saver");
+    return shouldPin;
+  }
+
+  return false;
+});
+
+ipcMain.handle("goblin:interactive-mode", (_event, isInteractive) => {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return false;
+  }
+
+  // Tryb domyslny przepuszcza klikniecia do Codex. Renderer wlacza interakcje
+  // tylko nad paskiem i karta goblina, gdzie potrzebne sa karmienie oraz drag.
+  mainWindow.setIgnoreMouseEvents(!isInteractive, { forward: true });
+  return Boolean(isInteractive);
+});
+
+if (hasSingleInstanceLock) {
+  app.on("second-instance", () => {
+    if (!mainWindow || mainWindow.isDestroyed()) {
+      return;
+    }
+
+    mainWindow.showInactive();
+    mainWindow.setAlwaysOnTop(true, "screen-saver");
+  });
+
+  app.whenReady().then(() => {
+    app.setName("Goblin Companion");
+    startEventBridge();
+    createMainWindow();
+    startAutoSignals();
+  });
+}
+
+app.on("before-quit", () => {
+  if (autoSignalTimer) {
+    clearInterval(autoSignalTimer);
+  }
+
+  if (eventServer) {
+    eventServer.close();
+  }
+});
+
+app.on("window-all-closed", () => {
+  app.quit();
+});
