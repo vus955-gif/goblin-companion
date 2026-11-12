@@ -185,7 +185,9 @@ function buildRuntimeSvg(sourceSvg) {
 </svg>`;
 }
 
-const sourceSvg = await readFile(canonicalSourcePath, 'utf8');
+// Normalizujemy CRLF -> LF, zeby hash zrodla i wynik buildu nie zalezaly od tego,
+// czy repo zostalo sklonowane na Windows z core.autocrlf=true.
+const sourceSvg = (await readFile(canonicalSourcePath, 'utf8')).replace(/\r\n/g, '\n');
 assertApprovedSource(sourceSvg);
 
 const runtimeSvg = `${buildRuntimeSvg(sourceSvg)}\n`;

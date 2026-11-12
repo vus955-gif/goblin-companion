@@ -1,12 +1,17 @@
 import assert from 'node:assert/strict';
+import { execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { access, readFile } from 'node:fs/promises';
+import { access, copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import test from 'node:test';
+import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
 
+const execFileAsync = promisify(execFile);
 const testDir = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(testDir, '..');
+const buildScriptPath = resolve(projectRoot, 'scripts', 'build-goblin-asset.mjs');
 const sourceAssetPath = resolve(projectRoot, 'assets', 'goblin-source', 'goblin_editable_vector.svg');
 const generatedAssetPath = resolve(projectRoot, 'assets', 'goblin.svg');
 const pluginIconPath = resolve(projectRoot, '.codex-plugin', 'assets', 'goblin.svg');
@@ -14,8 +19,12 @@ const pluginPreviewPath = resolve(projectRoot, '.codex-plugin', 'assets', 'previ
 const pluginManifestPath = resolve(projectRoot, '.codex-plugin', 'plugin.json');
 const pluginSkillPath = resolve(projectRoot, 'skills', 'goblin-companion', 'SKILL.md');
 
+function normalizeLineEndings(text) {
+  return text.replace(/\r\n/g, '\n');
+}
+
 function hashSource(sourceSvg) {
-  return createHash('sha256').update(sourceSvg).digest('hex').slice(0, 16);
+  return createHash('sha256').update(normalizeLineEndings(sourceSvg)).digest('hex').slice(0, 16);
 }
 
 test('generated goblin runtime asset contains only the cleaned character SVG contract', async () => {
@@ -46,6 +55,34 @@ test('generated goblin runtime asset contains only the cleaned character SVG con
   assert.doesNotMatch(svg, /goblin-cheer/, 'runtime asset should not add separate cheer arms');
   assert.match(svg, /class="goblin-satchel"/, 'runtime asset should name the brown satchel detail');
   assert.match(svg, /class="goblin-nose"/, 'runtime asset should name the long side-profile nose');
+});
+
+test('asset build output does not depend on checkout line endings', async () => {
+  // Kopia projektu ze zrodlem SVG zapisanym z CRLF (tak jak przy checkoucie z core.autocrlf=true).
+  const workDir = await mkdtemp(join(tmpdir(), 'goblin-asset-crlf-'));
+
+  try {
+    const crlfSource = normalizeLineEndings(await readFile(sourceAssetPath, 'utf8')).replace(/\n/g, '\r\n');
+    const workSourcePath = join(workDir, relative(projectRoot, sourceAssetPath));
+    const workScriptPath = join(workDir, relative(projectRoot, buildScriptPath));
+    const workPreviewPath = join(workDir, relative(projectRoot, pluginPreviewPath));
+
+    await mkdir(dirname(workSourcePath), { recursive: true });
+    await mkdir(dirname(workScriptPath), { recursive: true });
+    await mkdir(dirname(workPreviewPath), { recursive: true });
+    await writeFile(workSourcePath, crlfSource, 'utf8');
+    await copyFile(buildScriptPath, workScriptPath);
+    await copyFile(pluginPreviewPath, workPreviewPath);
+
+    await execFileAsync(process.execPath, [workScriptPath], { cwd: workDir, windowsHide: true });
+
+    const builtFromCrlf = await readFile(join(workDir, relative(projectRoot, generatedAssetPath)), 'utf8');
+    const committedAsset = normalizeLineEndings(await readFile(generatedAssetPath, 'utf8'));
+
+    assert.equal(builtFromCrlf, committedAsset, 'CRLF source should build the same runtime SVG as the LF source');
+  } finally {
+    await rm(workDir, { force: true, recursive: true });
+  }
 });
 
 test('plugin bundle has the manifest assets it references', async () => {
