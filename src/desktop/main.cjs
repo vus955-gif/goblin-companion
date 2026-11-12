@@ -4,6 +4,7 @@ const { existsSync, mkdirSync, readFileSync, writeFileSync } = require("node:fs"
 const path = require("node:path");
 const { app, BrowserWindow, ipcMain, powerMonitor, screen } = require("electron");
 const { createEventBridgeHandler } = require("./event-bridge.cjs");
+const { createForegroundWindowProbe } = require("./foreground-window.cjs");
 
 const DEFAULT_EVENT_PORT = 48735;
 const AUTO_SIGNAL_INTERVAL_MS = 2500;
@@ -28,8 +29,13 @@ let mainWindow = null;
 let eventServer = null;
 let latestExternalEvent = null;
 let latestForegroundWindow = null;
-let foregroundPoll = null;
 let autoSignalTimer = null;
+// Jeden dlugo zyjacy proces PowerShell zamiast nowego procesu i kompilacji C# co 2,5 s.
+const foregroundWindowProbe = createForegroundWindowProbe({
+  onFailure: (reason, consecutiveFailures) => {
+    console.warn(`Goblin Companion foreground window helper failed (${consecutiveFailures}x): ${reason}`);
+  }
+});
 
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
 
@@ -183,60 +189,10 @@ function startEventBridge() {
   });
 }
 
-function getForegroundWindowScript() {
-  return `
-Add-Type @"
-using System;
-using System.Runtime.InteropServices;
-using System.Text;
-public static class GoblinForegroundWindow {
-  [DllImport("user32.dll")]
-  public static extern IntPtr GetForegroundWindow();
-  [DllImport("user32.dll", SetLastError=true)]
-  public static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int count);
-  [DllImport("user32.dll")]
-  public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
-}
-"@
-$handle = [GoblinForegroundWindow]::GetForegroundWindow()
-$titleBuilder = New-Object System.Text.StringBuilder 512
-[GoblinForegroundWindow]::GetWindowText($handle, $titleBuilder, $titleBuilder.Capacity) | Out-Null
-$processId = 0
-[GoblinForegroundWindow]::GetWindowThreadProcessId($handle, [ref]$processId) | Out-Null
-$process = Get-Process -Id $processId -ErrorAction SilentlyContinue
-[pscustomobject]@{
-  ProcessName = if ($process) { $process.ProcessName } else { "" }
-  Title = $titleBuilder.ToString()
-} | ConvertTo-Json -Compress
-`;
-}
-
 function pollForegroundWindow() {
-  if (process.platform !== "win32" || foregroundPoll) {
-    return;
-  }
-
-  foregroundPoll = execFile(
-    "powershell.exe",
-    ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", getForegroundWindowScript()],
-    {
-      timeout: 2200,
-      windowsHide: true
-    },
-    (error, stdout) => {
-      foregroundPoll = null;
-
-      if (error || !stdout.trim()) {
-        return;
-      }
-
-      try {
-        latestForegroundWindow = JSON.parse(stdout);
-      } catch {
-        latestForegroundWindow = null;
-      }
-    }
-  );
+  foregroundWindowProbe.sample().then((foregroundWindow) => {
+    latestForegroundWindow = foregroundWindow;
+  });
 }
 
 function isCodexForeground() {
@@ -415,9 +371,15 @@ app.on("before-quit", () => {
     clearInterval(autoSignalTimer);
   }
 
+  foregroundWindowProbe.dispose();
+
   if (eventServer) {
     eventServer.close();
   }
+});
+
+process.on("exit", () => {
+  foregroundWindowProbe.dispose();
 });
 
 app.on("window-all-closed", () => {

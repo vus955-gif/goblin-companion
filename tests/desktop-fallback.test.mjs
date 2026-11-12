@@ -44,6 +44,9 @@ test('desktop main window is transparent, frameless, and always on top', async (
   assert.match(main, /createServer\(\s*createEventBridgeHandler/, 'desktop fallback should expose the guarded local event bridge');
   assert.match(main, /listen\(eventPort, "127\.0\.0\.1"/, 'event bridge should listen only on loopback');
   assert.match(main, /process\.env\.GOBLIN_WORKSPACE \|\| null/, 'git activity monitoring should require an explicit workspace');
+  assert.match(main, /const foregroundWindowProbe = createForegroundWindowProbe\(/, 'foreground window polling should reuse one helper process');
+  assert.doesNotMatch(main, /powershell\.exe/, 'main process should not spawn PowerShell on every poll');
+  assert.match(main, /before-quit[\s\S]*foregroundWindowProbe\.dispose\(\)/, 'helper process should be cleaned up on quit');
 });
 
 test('event bridge bounds request body and comment size', async () => {
