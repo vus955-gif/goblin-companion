@@ -2,7 +2,7 @@
 
 Goblin Companion is a local-first coding companion for Codex: a small pixel goblin that comments on coding sessions, reacts to development states, and can be fed token snacks.
 
-The long-term target is Codex's native custom avatar surface. Because that Avatar UI may not be available in every Codex Desktop build or account yet, this repo also ships a clean Windows desktop fallback: a transparent, frameless, always-on-top Electron window that sits above Codex without patching Codex.
+The long-term target is Codex's native custom avatar surface. Because that Avatar UI may not be available in every Codex Desktop build or account yet, this repo also ships a clean Windows desktop fallback: a transparent, frameless, always-on-top Electron window that sits above Codex without patching Codex. The native avatar installer is different: by default it edits Codex Desktop's state file to select the avatar (see [What the installer changes](#what-the-installer-changes)).
 
 ## Status
 
@@ -11,7 +11,7 @@ Goblin Companion is an early MVP. The supported visible surface on Windows is th
 Current capabilities:
 
 - Native Codex avatar package generator.
-- Native Codex avatar installer for `~/.codex/avatars/goblin-companion`.
+- Native Codex avatar installer for `~/.codex/avatars/goblin-companion` that also selects the avatar in Codex state (skip with `--no-state`).
 - Windows desktop fallback with click-through transparent areas.
 - Local event bridge for state reactions.
 - SVG goblin renderer with state-specific animations.
@@ -106,6 +106,28 @@ Installed location:
 ```text
 C:\Users\<you>\.codex\avatars\goblin-companion
 ```
+
+If `CODEX_HOME` is set, the installer uses `$CODEX_HOME` instead of `~/.codex`.
+
+### What the installer changes
+
+`npm run install:codex-avatar` does more than copy files. By default it:
+
+1. Copies `avatar.json` and `spritesheet.png` to `~/.codex/avatars/goblin-companion`.
+2. Edits Codex Desktop's own state file, `~/.codex/.codex-global-state.json`, to select the avatar:
+   - sets `electron-persisted-atom-state` → `selected-avatar-id` to `custom:goblin-companion`;
+   - sets `electron-avatar-overlay-open` to `true`.
+3. Before that edit, saves the original file next to it as `.codex-global-state.json.goblin-companion-backup-<timestamp>`.
+
+These are internal Codex Desktop keys, not a documented API, so a Codex update may rename or ignore them. If the state file does not exist, the installer only copies the avatar files.
+
+To install the avatar files without touching Codex state, pass `--no-state` and pick the avatar in Codex settings yourself:
+
+```powershell
+npm run install:codex-avatar -- --no-state
+```
+
+To undo the state change, close Codex and restore the backup file, or choose a different avatar in Codex settings.
 
 If Codex settings do not show an Avatar section, the native UI is not enabled for the current app/account yet. Use `npm run desktop` in the meantime.
 

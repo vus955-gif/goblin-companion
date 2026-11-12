@@ -19,6 +19,8 @@ npm run install:codex-avatar
 
 This builds the approved SVG source, generates the native Codex avatar spritesheet, installs it into `C:\Users\<you>\.codex\avatars\goblin-companion`, selects `custom:goblin-companion`, and asks Codex to open its built-in avatar overlay. If the running Codex window does not refresh immediately, restart Codex once.
 
+Selecting the avatar edits Codex Desktop's internal state file, `~/.codex/.codex-global-state.json`, after writing a timestamped backup next to it. Tell the user before running the installer. If they do not want Codex state edited, run `npm run install:codex-avatar -- --no-state` instead; it only copies the avatar files, and the user picks the avatar in Codex settings.
+
 If Codex does not show the Avatar settings section, use the Windows desktop fallback instead:
 
 ```powershell
