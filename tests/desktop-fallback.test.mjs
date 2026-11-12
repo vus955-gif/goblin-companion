@@ -16,7 +16,7 @@ test('package exposes the Electron desktop fallback and local event bridge comma
 
   assert.equal(packageJson.scripts.desktop, 'node scripts/start-desktop.mjs');
   assert.equal(packageJson.scripts.event, 'node scripts/goblin-event.mjs');
-  assert.equal(packageJson.devDependencies.electron, '41.3.0');
+  assert.equal(packageJson.devDependencies.electron, '41.10.7');
 });
 
 test('desktop launcher starts Electron instead of the older Edge app overlay', async () => {

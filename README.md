@@ -34,7 +34,7 @@ Current capabilities:
 ## Requirements
 
 - Windows for the desktop fallback.
-- Node.js `>=20`.
+- Node.js `>=22.12` (required by Electron 41.10).
 - npm.
 
 ## Install
