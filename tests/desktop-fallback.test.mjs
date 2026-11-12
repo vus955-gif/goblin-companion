@@ -41,10 +41,16 @@ test('desktop main window is transparent, frameless, and always on top', async (
   assert.match(main, /setIgnoreMouseEvents\(!isInteractive,\s*\{\s*forward:\s*true\s*\}\)/, 'desktop fallback should only capture clicks over interactive regions');
   assert.match(main, /skipTaskbar:\s*true/, 'desktop fallback should behave like a companion, not a normal app pane');
   assert.match(main, /powerMonitor\.getSystemIdleTime/, 'desktop fallback should derive sleeping state from system idle time');
-  assert.match(main, /createServer/, 'desktop fallback should expose a local event bridge');
-  assert.match(main, /MAX_EVENT_BODY_BYTES/, 'event bridge should bound request body size');
-  assert.match(main, /MAX_EVENT_COMMENT_LENGTH/, 'event bridge should bound comment length');
+  assert.match(main, /createServer\(\s*createEventBridgeHandler/, 'desktop fallback should expose the guarded local event bridge');
+  assert.match(main, /listen\(eventPort, "127\.0\.0\.1"/, 'event bridge should listen only on loopback');
   assert.match(main, /process\.env\.GOBLIN_WORKSPACE \|\| null/, 'git activity monitoring should require an explicit workspace');
+});
+
+test('event bridge bounds request body and comment size', async () => {
+  const bridge = await readProjectFile('src', 'desktop', 'event-bridge.cjs');
+
+  assert.match(bridge, /MAX_EVENT_BODY_BYTES = 16 \* 1024/, 'event bridge should bound request body size');
+  assert.match(bridge, /MAX_EVENT_COMMENT_LENGTH = 240/, 'event bridge should bound comment length');
 });
 
 test('desktop preload exposes only the narrow companion API', async () => {

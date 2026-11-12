@@ -49,4 +49,5 @@ When several signals are active, the state machine uses this order:
 - The desktop fallback does not patch Codex files.
 - The fallback is click-through by default, so transparent parts do not block Codex.
 - The local event bridge listens only on `127.0.0.1`.
+- The bridge rejects requests with an `Origin` header (HTTP 403) and requires `Content-Type: application/json` (HTTP 415). Browsers attach `Origin` to every `POST`, and HTML forms or CORS-simple `fetch` calls cannot send JSON without a preflight, so a web page cannot inject speech-bubble text. Local clients such as `npm run event`, `curl`, or hooks do not send `Origin`.
 - Event payloads and custom comments are size-limited.

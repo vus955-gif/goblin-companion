@@ -3,12 +3,11 @@ const { createServer } = require("node:http");
 const { existsSync, mkdirSync, readFileSync, writeFileSync } = require("node:fs");
 const path = require("node:path");
 const { app, BrowserWindow, ipcMain, powerMonitor, screen } = require("electron");
+const { createEventBridgeHandler } = require("./event-bridge.cjs");
 
 const DEFAULT_EVENT_PORT = 48735;
 const AUTO_SIGNAL_INTERVAL_MS = 2500;
 const EXTERNAL_EVENT_TTL_MS = 20000;
-const MAX_EVENT_BODY_BYTES = 16 * 1024;
-const MAX_EVENT_COMMENT_LENGTH = 240;
 const WINDOW_STATE_FILE = "desktop-window-state.json";
 const VALID_STATES = new Set([
   "idle",
@@ -153,124 +152,27 @@ function getFreshExternalSignals() {
   };
 }
 
-function parseJsonBody(request) {
-  return new Promise((resolve, reject) => {
-    const chunks = [];
-    let byteLength = 0;
-    let settled = false;
-
-    function fail(error) {
-      if (settled) {
-        return;
-      }
-
-      settled = true;
-      reject(error);
-      request.destroy();
-    }
-
-    request.on("data", (chunk) => {
-      byteLength += chunk.length;
-
-      if (byteLength > MAX_EVENT_BODY_BYTES) {
-        fail(new Error(`Event payload is too large. Limit: ${MAX_EVENT_BODY_BYTES} bytes.`));
-        return;
-      }
-
-      chunks.push(chunk);
-    });
-    request.on("error", (error) => {
-      if (!settled) {
-        settled = true;
-        reject(error);
-      }
-    });
-    request.on("end", () => {
-      if (settled) {
-        return;
-      }
-
-      settled = true;
-      const rawBody = Buffer.concat(chunks).toString("utf8");
-
-      if (!rawBody.trim()) {
-        resolve({});
-        return;
-      }
-
-      try {
-        resolve(JSON.parse(rawBody));
-      } catch (error) {
-        reject(error);
-      }
-    });
-  });
-}
-
-function normalizeEventComment(value) {
-  if (typeof value !== "string") {
-    return undefined;
-  }
-
-  const normalizedComment = value.trim().replace(/\s+/g, " ");
-  return normalizedComment ? normalizedComment.slice(0, MAX_EVENT_COMMENT_LENGTH) : undefined;
-}
-
-function sendJson(response, statusCode, body) {
-  response.writeHead(statusCode, {
-    "content-type": "application/json; charset=utf-8"
-  });
-  response.end(JSON.stringify(body));
-}
-
 function startEventBridge() {
-  eventServer = createServer(async (request, response) => {
-    if (!request.url) {
-      sendJson(response, 400, { ok: false, error: "Missing URL." });
-      return;
-    }
+  eventServer = createServer(
+    createEventBridgeHandler({
+      onEvent: ({ comment, state }) => {
+        latestExternalEvent = {
+          comment,
+          receivedAt: Date.now(),
+          state
+        };
 
-    const requestUrl = new URL(request.url, `http://127.0.0.1:${eventPort}`);
-
-    if (request.method === "GET" && requestUrl.pathname === "/health") {
-      sendJson(response, 200, { ok: true });
-      return;
-    }
-
-    if (request.method !== "POST" || requestUrl.pathname !== "/event") {
-      sendJson(response, 404, { ok: false, error: "Not found." });
-      return;
-    }
-
-    try {
-      const body = await parseJsonBody(request);
-      const state = String(body.state || requestUrl.searchParams.get("state") || "idle");
-
-      if (!VALID_STATES.has(state)) {
-        sendJson(response, 400, { ok: false, error: `Unknown state: ${state}` });
-        return;
-      }
-
-      latestExternalEvent = {
-        comment: normalizeEventComment(body.comment),
-        receivedAt: Date.now(),
-        state
-      };
-
-      sendSignals({
-        comment: latestExternalEvent.comment,
-        signals: stateToSignals(state),
-        source: "event-bridge",
-        state
-      });
-      sendJson(response, 200, { ok: true, state });
-    } catch (error) {
-      sendJson(response, 400, {
-        ok: false,
-        error: error instanceof Error ? error.message : String(error)
-      });
-    }
-  });
+        sendSignals({
+          comment,
+          signals: stateToSignals(state),
+          source: "event-bridge",
+          state
+        });
+      },
+      port: eventPort,
+      validStates: VALID_STATES
+    })
+  );
 
   eventServer.listen(eventPort, "127.0.0.1", () => {
     console.log(`Goblin Companion event bridge: http://127.0.0.1:${eventPort}/event`);

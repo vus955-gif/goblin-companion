@@ -66,6 +66,16 @@ npm run event -- alert "Uncaught exception detected; evidence has entered the ro
 npm run event -- feed "Snack received. The intentional failures have been digested."
 ```
 
+Custom hooks or scripts can post to the bridge directly. The bridge accepts only `POST /event` with `Content-Type: application/json` and rejects any request that carries an `Origin` header, so web pages open in your browser cannot drive the goblin:
+
+```powershell
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:48735/event -ContentType "application/json" -Body '{"state":"happy","comment":"Green across the board."}'
+```
+
+```bash
+curl -X POST http://127.0.0.1:48735/event -H "Content-Type: application/json" -d '{"state":"sick"}'
+```
+
 To let the fallback judge "long time without a commit" for a real coding repo, point it at that workspace before launch:
 
 ```powershell
