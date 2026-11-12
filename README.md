@@ -144,8 +144,8 @@ docs/architecture.md
 ## Project Structure
 
 ```text
-.codex-plugin/          Codex plugin metadata scaffold
-assets/                 Goblin art source and generated native avatar assets
+.codex-plugin/          Codex plugin manifest (paths in it resolve from the repo root)
+assets/                 Goblin art source, plugin icon/preview, generated native avatar assets
 docs/                   Public project notes
 scripts/                Build, install, launch, and event scripts
 skills/                 Local Codex skill metadata

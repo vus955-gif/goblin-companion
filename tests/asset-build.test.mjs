@@ -14,8 +14,7 @@ const projectRoot = resolve(testDir, '..');
 const buildScriptPath = resolve(projectRoot, 'scripts', 'build-goblin-asset.mjs');
 const sourceAssetPath = resolve(projectRoot, 'assets', 'goblin-source', 'goblin_editable_vector.svg');
 const generatedAssetPath = resolve(projectRoot, 'assets', 'goblin.svg');
-const pluginIconPath = resolve(projectRoot, '.codex-plugin', 'assets', 'goblin.svg');
-const pluginPreviewPath = resolve(projectRoot, '.codex-plugin', 'assets', 'preview.png');
+const pluginPreviewPath = resolve(projectRoot, 'assets', 'preview.png');
 const pluginManifestPath = resolve(projectRoot, '.codex-plugin', 'plugin.json');
 const pluginSkillPath = resolve(projectRoot, 'skills', 'goblin-companion', 'SKILL.md');
 
@@ -85,12 +84,31 @@ test('asset build output does not depend on checkout line endings', async () => 
   }
 });
 
+test('plugin manifest paths resolve from the plugin root', async () => {
+  // Specyfikacja plugin.json: sciezki sa wzgledne do katalogu glownego pluginu
+  // (rodzica .codex-plugin/), a nie do katalogu z samym manifestem.
+  const pluginManifest = JSON.parse(await readFile(pluginManifestPath, 'utf8'));
+  const { composerIcon, logo, screenshots } = pluginManifest.interface;
+  const manifestPaths = [pluginManifest.skills, composerIcon, logo, ...screenshots];
+
+  for (const manifestPath of manifestPaths) {
+    assert.match(manifestPath, /^\.\//, `${manifestPath} should be relative and start with ./`);
+    await access(resolve(projectRoot, manifestPath)).catch(() => {
+      assert.fail(`${manifestPath} from plugin.json does not exist under the plugin root`);
+    });
+  }
+
+  for (const screenshot of screenshots) {
+    assert.match(screenshot, /^\.\/assets\/[^/]+\.png$/, 'screenshots should be PNG files stored under ./assets/');
+  }
+
+  assert.equal(resolve(projectRoot, composerIcon), generatedAssetPath, 'composer icon should be the generated runtime SVG');
+  assert.equal(resolve(projectRoot, screenshots[0]), pluginPreviewPath, 'preview screenshot should live in ./assets/');
+});
+
 test('plugin bundle has the manifest assets it references', async () => {
-  const runtimeSvg = await readFile(generatedAssetPath, 'utf8');
-  const pluginSvg = await readFile(pluginIconPath, 'utf8');
   const pluginManifest = JSON.parse(await readFile(pluginManifestPath, 'utf8'));
 
-  assert.equal(pluginSvg, runtimeSvg, 'plugin goblin icon should match the generated runtime SVG');
   await access(pluginPreviewPath);
   await access(pluginSkillPath);
   assert.equal(pluginManifest.skills, './skills/', 'plugin should expose the avatar installer skill');
