@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { mkdtemp, readdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import test from 'node:test';
@@ -85,8 +85,9 @@ test('installer selects the custom avatar through Codex native persisted state k
   assert.match(source, /goblin-companion-backup/, 'installer should back up Codex global state before editing it');
 });
 
-test('installer copies avatar files and patches only the requested temporary CODEX_HOME state', async () => {
+test('installer copies avatar files and patches only the requested temporary CODEX_HOME state', async (t) => {
   const codexHome = await mkdtemp(join(tmpdir(), 'goblin-codex-home-'));
+  t.after(() => rm(codexHome, { force: true, recursive: true }));
   const globalStatePath = join(codexHome, '.codex-global-state.json');
 
   await writeFile(
@@ -120,8 +121,9 @@ test('installer copies avatar files and patches only the requested temporary COD
   assert.equal(patchedState['electron-avatar-overlay-open'], true);
 });
 
-test('installer with --no-state copies avatar files and leaves Codex global state untouched', async () => {
+test('installer with --no-state copies avatar files and leaves Codex global state untouched', async (t) => {
   const codexHome = await mkdtemp(join(tmpdir(), 'goblin-codex-home-'));
+  t.after(() => rm(codexHome, { force: true, recursive: true }));
   const globalStatePath = join(codexHome, '.codex-global-state.json');
   const originalState = `${JSON.stringify({ 'electron-persisted-atom-state': { existing: true } })}\n`;
 
