@@ -5,6 +5,7 @@ const path = require("node:path");
 const { app, BrowserWindow, ipcMain, powerMonitor, screen } = require("electron");
 const { createEventBridgeHandler } = require("./event-bridge.cjs");
 const { createForegroundWindowProbe } = require("./foreground-window.cjs");
+const { clampBounds } = require("./window-bounds.cjs");
 
 const DEFAULT_EVENT_PORT = 48735;
 const AUTO_SIGNAL_INTERVAL_MS = 2500;
@@ -71,27 +72,6 @@ function writeDesktopState(state) {
   } catch (error) {
     console.warn("Goblin Companion could not save desktop state.", error);
   }
-}
-
-function clampBounds(bounds) {
-  const workArea = screen.getPrimaryDisplay().workArea;
-  const width = Math.min(Math.max(Number(bounds?.width) || 360, 260), 520);
-  const height = Math.min(Math.max(Number(bounds?.height) || 520, 320), 680);
-  const x = Math.min(
-    Math.max(Number(bounds?.x) || workArea.x + workArea.width - width - 56, workArea.x),
-    workArea.x + workArea.width - width
-  );
-  const y = Math.min(
-    Math.max(Number(bounds?.y) || workArea.y + 72, workArea.y),
-    workArea.y + workArea.height - height
-  );
-
-  return {
-    height: Math.round(height),
-    width: Math.round(width),
-    x: Math.round(x),
-    y: Math.round(y)
-  };
 }
 
 function saveWindowBounds() {
@@ -270,7 +250,7 @@ function startAutoSignals() {
 
 function createMainWindow() {
   const savedState = readDesktopState();
-  const bounds = clampBounds(savedState.bounds);
+  const bounds = clampBounds(savedState.bounds, screen.getPrimaryDisplay().workArea);
 
   mainWindow = new BrowserWindow({
     ...bounds,
