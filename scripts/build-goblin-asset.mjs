@@ -6,10 +6,10 @@ import { fileURLToPath } from 'node:url';
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(scriptDir, '..');
 const canonicalSourcePath = resolve(projectRoot, 'assets', 'goblin-source', 'goblin_editable_vector.svg');
+// Sciezki w .codex-plugin/plugin.json sa wzgledne do katalogu glownego pluginu,
+// wiec ikona (./assets/goblin.svg) to ten sam plik co runtime asset.
 const outputPath = resolve(projectRoot, 'assets', 'goblin.svg');
-const pluginAssetDir = resolve(projectRoot, '.codex-plugin', 'assets');
-const pluginIconPath = resolve(pluginAssetDir, 'goblin.svg');
-const pluginPreviewPath = resolve(pluginAssetDir, 'preview.png');
+const pluginPreviewPath = resolve(projectRoot, 'assets', 'preview.png');
 
 // Walidujemy kilka stabilnych znacznikow, zeby przypadkiem nie zbudowac runtime assetu
 // z ciezkiej mozaiki albo innego pliku niz zatwierdzony editable vector.
@@ -185,19 +185,19 @@ function buildRuntimeSvg(sourceSvg) {
 </svg>`;
 }
 
-const sourceSvg = await readFile(canonicalSourcePath, 'utf8');
+// Normalizujemy CRLF -> LF, zeby hash zrodla i wynik buildu nie zalezaly od tego,
+// czy repo zostalo sklonowane na Windows z core.autocrlf=true.
+const sourceSvg = (await readFile(canonicalSourcePath, 'utf8')).replace(/\r\n/g, '\n');
 assertApprovedSource(sourceSvg);
 
 const runtimeSvg = `${buildRuntimeSvg(sourceSvg)}\n`;
 
 await mkdir(dirname(canonicalSourcePath), { recursive: true });
 await mkdir(dirname(outputPath), { recursive: true });
-await mkdir(pluginAssetDir, { recursive: true });
 
 await writeFile(canonicalSourcePath, sourceSvg, 'utf8');
 await writeFile(outputPath, runtimeSvg, 'utf8');
-await writeFile(pluginIconPath, runtimeSvg, 'utf8');
 await access(pluginPreviewPath);
 
 console.log(`Built ${relative(projectRoot, outputPath)} from ${relative(projectRoot, canonicalSourcePath)}`);
-console.log(`Synced plugin assets in ${relative(projectRoot, pluginAssetDir)}`);
+console.log(`Plugin icon and preview live in ${relative(projectRoot, dirname(outputPath))}`);

@@ -3,12 +3,13 @@ const { createServer } = require("node:http");
 const { existsSync, mkdirSync, readFileSync, writeFileSync } = require("node:fs");
 const path = require("node:path");
 const { app, BrowserWindow, ipcMain, powerMonitor, screen } = require("electron");
+const { createEventBridgeHandler } = require("./event-bridge.cjs");
+const { createForegroundWindowProbe } = require("./foreground-window.cjs");
+const { clampBounds } = require("./window-bounds.cjs");
 
 const DEFAULT_EVENT_PORT = 48735;
 const AUTO_SIGNAL_INTERVAL_MS = 2500;
 const EXTERNAL_EVENT_TTL_MS = 20000;
-const MAX_EVENT_BODY_BYTES = 16 * 1024;
-const MAX_EVENT_COMMENT_LENGTH = 240;
 const WINDOW_STATE_FILE = "desktop-window-state.json";
 const VALID_STATES = new Set([
   "idle",
@@ -29,8 +30,13 @@ let mainWindow = null;
 let eventServer = null;
 let latestExternalEvent = null;
 let latestForegroundWindow = null;
-let foregroundPoll = null;
 let autoSignalTimer = null;
+// Jeden dlugo zyjacy proces PowerShell zamiast nowego procesu i kompilacji C# co 2,5 s.
+const foregroundWindowProbe = createForegroundWindowProbe({
+  onFailure: (reason, consecutiveFailures) => {
+    console.warn(`Goblin Companion foreground window helper failed (${consecutiveFailures}x): ${reason}`);
+  }
+});
 
 const hasSingleInstanceLock = app.requestSingleInstanceLock();
 
@@ -66,27 +72,6 @@ function writeDesktopState(state) {
   } catch (error) {
     console.warn("Goblin Companion could not save desktop state.", error);
   }
-}
-
-function clampBounds(bounds) {
-  const workArea = screen.getPrimaryDisplay().workArea;
-  const width = Math.min(Math.max(Number(bounds?.width) || 360, 260), 520);
-  const height = Math.min(Math.max(Number(bounds?.height) || 520, 320), 680);
-  const x = Math.min(
-    Math.max(Number(bounds?.x) || workArea.x + workArea.width - width - 56, workArea.x),
-    workArea.x + workArea.width - width
-  );
-  const y = Math.min(
-    Math.max(Number(bounds?.y) || workArea.y + 72, workArea.y),
-    workArea.y + workArea.height - height
-  );
-
-  return {
-    height: Math.round(height),
-    width: Math.round(width),
-    x: Math.round(x),
-    y: Math.round(y)
-  };
 }
 
 function saveWindowBounds() {
@@ -153,124 +138,27 @@ function getFreshExternalSignals() {
   };
 }
 
-function parseJsonBody(request) {
-  return new Promise((resolve, reject) => {
-    const chunks = [];
-    let byteLength = 0;
-    let settled = false;
-
-    function fail(error) {
-      if (settled) {
-        return;
-      }
-
-      settled = true;
-      reject(error);
-      request.destroy();
-    }
-
-    request.on("data", (chunk) => {
-      byteLength += chunk.length;
-
-      if (byteLength > MAX_EVENT_BODY_BYTES) {
-        fail(new Error(`Event payload is too large. Limit: ${MAX_EVENT_BODY_BYTES} bytes.`));
-        return;
-      }
-
-      chunks.push(chunk);
-    });
-    request.on("error", (error) => {
-      if (!settled) {
-        settled = true;
-        reject(error);
-      }
-    });
-    request.on("end", () => {
-      if (settled) {
-        return;
-      }
-
-      settled = true;
-      const rawBody = Buffer.concat(chunks).toString("utf8");
-
-      if (!rawBody.trim()) {
-        resolve({});
-        return;
-      }
-
-      try {
-        resolve(JSON.parse(rawBody));
-      } catch (error) {
-        reject(error);
-      }
-    });
-  });
-}
-
-function normalizeEventComment(value) {
-  if (typeof value !== "string") {
-    return undefined;
-  }
-
-  const normalizedComment = value.trim().replace(/\s+/g, " ");
-  return normalizedComment ? normalizedComment.slice(0, MAX_EVENT_COMMENT_LENGTH) : undefined;
-}
-
-function sendJson(response, statusCode, body) {
-  response.writeHead(statusCode, {
-    "content-type": "application/json; charset=utf-8"
-  });
-  response.end(JSON.stringify(body));
-}
-
 function startEventBridge() {
-  eventServer = createServer(async (request, response) => {
-    if (!request.url) {
-      sendJson(response, 400, { ok: false, error: "Missing URL." });
-      return;
-    }
+  eventServer = createServer(
+    createEventBridgeHandler({
+      onEvent: ({ comment, state }) => {
+        latestExternalEvent = {
+          comment,
+          receivedAt: Date.now(),
+          state
+        };
 
-    const requestUrl = new URL(request.url, `http://127.0.0.1:${eventPort}`);
-
-    if (request.method === "GET" && requestUrl.pathname === "/health") {
-      sendJson(response, 200, { ok: true });
-      return;
-    }
-
-    if (request.method !== "POST" || requestUrl.pathname !== "/event") {
-      sendJson(response, 404, { ok: false, error: "Not found." });
-      return;
-    }
-
-    try {
-      const body = await parseJsonBody(request);
-      const state = String(body.state || requestUrl.searchParams.get("state") || "idle");
-
-      if (!VALID_STATES.has(state)) {
-        sendJson(response, 400, { ok: false, error: `Unknown state: ${state}` });
-        return;
-      }
-
-      latestExternalEvent = {
-        comment: normalizeEventComment(body.comment),
-        receivedAt: Date.now(),
-        state
-      };
-
-      sendSignals({
-        comment: latestExternalEvent.comment,
-        signals: stateToSignals(state),
-        source: "event-bridge",
-        state
-      });
-      sendJson(response, 200, { ok: true, state });
-    } catch (error) {
-      sendJson(response, 400, {
-        ok: false,
-        error: error instanceof Error ? error.message : String(error)
-      });
-    }
-  });
+        sendSignals({
+          comment,
+          signals: stateToSignals(state),
+          source: "event-bridge",
+          state
+        });
+      },
+      port: eventPort,
+      validStates: VALID_STATES
+    })
+  );
 
   eventServer.listen(eventPort, "127.0.0.1", () => {
     console.log(`Goblin Companion event bridge: http://127.0.0.1:${eventPort}/event`);
@@ -281,60 +169,10 @@ function startEventBridge() {
   });
 }
 
-function getForegroundWindowScript() {
-  return `
-Add-Type @"
-using System;
-using System.Runtime.InteropServices;
-using System.Text;
-public static class GoblinForegroundWindow {
-  [DllImport("user32.dll")]
-  public static extern IntPtr GetForegroundWindow();
-  [DllImport("user32.dll", SetLastError=true)]
-  public static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int count);
-  [DllImport("user32.dll")]
-  public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
-}
-"@
-$handle = [GoblinForegroundWindow]::GetForegroundWindow()
-$titleBuilder = New-Object System.Text.StringBuilder 512
-[GoblinForegroundWindow]::GetWindowText($handle, $titleBuilder, $titleBuilder.Capacity) | Out-Null
-$processId = 0
-[GoblinForegroundWindow]::GetWindowThreadProcessId($handle, [ref]$processId) | Out-Null
-$process = Get-Process -Id $processId -ErrorAction SilentlyContinue
-[pscustomobject]@{
-  ProcessName = if ($process) { $process.ProcessName } else { "" }
-  Title = $titleBuilder.ToString()
-} | ConvertTo-Json -Compress
-`;
-}
-
 function pollForegroundWindow() {
-  if (process.platform !== "win32" || foregroundPoll) {
-    return;
-  }
-
-  foregroundPoll = execFile(
-    "powershell.exe",
-    ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", getForegroundWindowScript()],
-    {
-      timeout: 2200,
-      windowsHide: true
-    },
-    (error, stdout) => {
-      foregroundPoll = null;
-
-      if (error || !stdout.trim()) {
-        return;
-      }
-
-      try {
-        latestForegroundWindow = JSON.parse(stdout);
-      } catch {
-        latestForegroundWindow = null;
-      }
-    }
-  );
+  foregroundWindowProbe.sample().then((foregroundWindow) => {
+    latestForegroundWindow = foregroundWindow;
+  });
 }
 
 function isCodexForeground() {
@@ -412,7 +250,7 @@ function startAutoSignals() {
 
 function createMainWindow() {
   const savedState = readDesktopState();
-  const bounds = clampBounds(savedState.bounds);
+  const bounds = clampBounds(savedState.bounds, screen.getPrimaryDisplay().workArea);
 
   mainWindow = new BrowserWindow({
     ...bounds,
@@ -513,9 +351,15 @@ app.on("before-quit", () => {
     clearInterval(autoSignalTimer);
   }
 
+  foregroundWindowProbe.dispose();
+
   if (eventServer) {
     eventServer.close();
   }
+});
+
+process.on("exit", () => {
+  foregroundWindowProbe.dispose();
 });
 
 app.on("window-all-closed", () => {

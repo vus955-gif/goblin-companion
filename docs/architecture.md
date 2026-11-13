@@ -17,6 +17,8 @@ The installer copies that package to:
 C:\Users\<you>\.codex\avatars\goblin-companion
 ```
 
+By default the installer also selects the avatar by editing Codex Desktop's state file, `~/.codex/.codex-global-state.json` (`electron-persisted-atom-state.selected-avatar-id` and `electron-avatar-overlay-open`), after writing a timestamped backup next to it. Those keys are internal to Codex Desktop and may change between releases. Pass `--no-state` to copy the avatar files only.
+
 Codex Desktop may not expose its Avatar UI in every Windows build or account yet. When that UI is unavailable, the fallback path uses Electron to create a transparent, frameless, always-on-top companion window. This avoids patching Codex and keeps the integration local and reversible.
 
 ## Main Modules
@@ -47,6 +49,8 @@ When several signals are active, the state machine uses this order:
 ## Safety Notes
 
 - The desktop fallback does not patch Codex files.
+- The native avatar installer does modify Codex state: it edits `~/.codex/.codex-global-state.json` after backing it up. Use `--no-state` to skip that step.
 - The fallback is click-through by default, so transparent parts do not block Codex.
 - The local event bridge listens only on `127.0.0.1`.
+- The bridge rejects requests with an `Origin` header (HTTP 403) and requires `Content-Type: application/json` (HTTP 415). Browsers attach `Origin` to every `POST`, and HTML forms or CORS-simple `fetch` calls cannot send JSON without a preflight, so a web page cannot inject speech-bubble text. Local clients such as `npm run event`, `curl`, or hooks do not send `Origin`.
 - Event payloads and custom comments are size-limited.

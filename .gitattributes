@@ -1,0 +1,15 @@
+# Keep LF line endings in the repository and in every checkout, including
+# Windows with core.autocrlf=true. Asset hashes and generated SVGs depend on it.
+* text=auto eol=lf
+
+# Binary files: no line-ending conversion and no text diffs.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.zip binary

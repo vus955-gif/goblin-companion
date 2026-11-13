@@ -24,10 +24,10 @@
     "coding-companion"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=22.12"
   },
   "license": "MIT",
   "devDependencies": {
-    "electron": "41.3.0"
+    "electron": "41.10.7"
   }
 }

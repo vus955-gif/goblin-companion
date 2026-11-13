@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import test from 'node:test';
@@ -85,8 +85,9 @@ test('installer selects the custom avatar through Codex native persisted state k
   assert.match(source, /goblin-companion-backup/, 'installer should back up Codex global state before editing it');
 });
 
-test('installer copies avatar files and patches only the requested temporary CODEX_HOME state', async () => {
+test('installer copies avatar files and patches only the requested temporary CODEX_HOME state', async (t) => {
   const codexHome = await mkdtemp(join(tmpdir(), 'goblin-codex-home-'));
+  t.after(() => rm(codexHome, { force: true, recursive: true }));
   const globalStatePath = join(codexHome, '.codex-global-state.json');
 
   await writeFile(
@@ -118,4 +119,42 @@ test('installer copies avatar files and patches only the requested temporary COD
   assert.equal(patchedState['electron-persisted-atom-state'].existing, true);
   assert.equal(patchedState['electron-persisted-atom-state']['selected-avatar-id'], 'custom:goblin-companion');
   assert.equal(patchedState['electron-avatar-overlay-open'], true);
+});
+
+test('installer with --no-state copies avatar files and leaves Codex global state untouched', async (t) => {
+  const codexHome = await mkdtemp(join(tmpdir(), 'goblin-codex-home-'));
+  t.after(() => rm(codexHome, { force: true, recursive: true }));
+  const globalStatePath = join(codexHome, '.codex-global-state.json');
+  const originalState = `${JSON.stringify({ 'electron-persisted-atom-state': { existing: true } })}\n`;
+
+  await writeFile(globalStatePath, originalState, 'utf8');
+
+  const { stdout } = await execFileAsync(process.execPath, [installerPath, '--no-state'], {
+    cwd: projectRoot,
+    env: {
+      ...process.env,
+      CODEX_HOME: codexHome,
+    },
+  });
+
+  assert.match(stdout, /--no-state/);
+  assert.equal(await readFile(globalStatePath, 'utf8'), originalState, 'global state should stay byte-for-byte identical');
+  assert.deepEqual(
+    (await readdir(codexHome)).sort(),
+    ['.codex-global-state.json', 'avatars'],
+    'no backup file should be written when state is skipped',
+  );
+  await readFile(join(codexHome, 'avatars', 'goblin-companion', 'avatar.json'), 'utf8');
+});
+
+test('docs disclose that the installer edits Codex global state and how to skip it', async () => {
+  const installer = await readFile(installerPath, 'utf8');
+  assert.match(installer, /\.codex-global-state\.json/, 'installer still edits Codex global state');
+
+  for (const docPath of ['README.md', 'docs/architecture.md', 'skills/goblin-companion/SKILL.md']) {
+    const doc = await readFile(resolve(projectRoot, docPath), 'utf8');
+
+    assert.match(doc, /\.codex-global-state\.json/, `${docPath} should name the Codex state file the installer edits`);
+    assert.match(doc, /--no-state/, `${docPath} should explain how to install without editing Codex state`);
+  }
 });
